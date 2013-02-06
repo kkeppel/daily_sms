@@ -34,13 +34,13 @@ task :message_vendors do
 
 end
 
-task :set_status_to_confirmed do
+task :reset_status_for_testing do
 
 	for row in 2..@doc.num_rows
 		@doc[row, 4] = "Confirmed"
 		@doc.save()
 	end
-	
+
 end
 
 
