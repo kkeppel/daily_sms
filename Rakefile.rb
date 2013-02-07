@@ -26,68 +26,10 @@ task :message_vendors do
 	row_data.each do |r|
 		number = r[0]
 		vendor_name = r[1]
-		vendor = Vendor.where(name: vendor_name)
-		confirmations = OrderRequest.confirmations
-		cancellations = OrderRequest.cancellations
+		message = Vendor.find_by_name(vendor_name).first.get_message
 
 		# correct grammar for number of confirmed orders]
-		if confirmations.empty?
-			message += "No orders to confirm today"
-		elsif confirmations.length == 1
-			message += "1 order for today"
-			message += "; " + confirmations[0].order_time + " for " + confirmations[0].client
-			order_id = confirmations[0].o_id
-			extras = CateringExtra.find_by_sql("SELECT client_profile_id,
-							order_request_id,
-							extra_label_id
-						FROM catering_extra
-						WHERE order_request_id = '#{order_id}'
-							AND (extra_label_id = 3 OR extra_label_id = 2)")
-			if extras.length == 1
-				message += ", w/utensils"
-			elsif extras.length == 2
-				message += ", w/utensils+paper ware"
-			end
-			unless confirmations[0].notes.nil?
-				message += " (" + confirmations[0].notes + ")"
-			end
-		else
-			message += confirmations.length + " orders for today"
-			confirmations.each do |c|
-				order_id = c.o_id
-				extras = CateringExtra.find_by_sql("SELECT client_profile_id,
-							order_request_id,
-							extra_label_id
-						FROM catering_extra
-						WHERE order_request_id = '#{order_id}'
-							AND (extra_label_id = 3 OR extra_label_id = 2)")
-				message += "; " + c.order_time + " for " + c.client
-				if extras.length == 1
-					message += ", w/utensils"
-				elsif extras.length == 2
-					message += ", w/utensils+paper ware"
-				end
-				unless c.notes.nil?
-					message += " (" + c.notes + ")"
-				end
-			end
-		end
 
-		# print cancellations if they exist
-		if cancellations
-			cancellations.each do |can|
-				message += ". " + can.order_time + " for " + can.client + "was CANCELLED"
-			end
-		end
-
-		# confirmation code depends on how many orders we have
-		if confirmations.empty?
-			message += ". Please text back to confirm. Thanks!"
-		elsif confirmations.length == 1
-			message += ". Please text back with the driver's number to confirm. Thanks!"
-		else
-			message += ". Please text back with the number of the driver(s) to confirm. Thanks!"
-		end
 
 		# use twilio to send sms, :to => number, :from => google_voice_number, :message => message
 		@client.account.sms.messages.create(
