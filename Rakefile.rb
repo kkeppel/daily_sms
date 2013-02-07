@@ -1,4 +1,4 @@
-require 'twilio-ruby'
+require 'googlevoiceapi'
 require 'google_drive'
 
 APP_CONFIG = YAML::load_file("config.yml")
@@ -7,10 +7,10 @@ APP_CONFIG = YAML::load_file("config.yml")
 session = GoogleDrive.login(APP_CONFIG["google_login"], APP_CONFIG["google_password"])
 @doc = session.spreadsheet_by_title(APP_CONFIG["spreadsheet_title"]).worksheets[0]
 
-# Twilio credentials
-account_sid = APP_CONFIG["twilio_sid"]
-auth_token = APP_CONFIG["twilio_auth_token"]
-@client = Twilio::REST::Client.new account_sid, auth_token
+# Google Voice credentials
+login = APP_CONFIG["gvoice_login"]
+password = APP_CONFIG["gvoice_password"]
+@api = GoogleVoice::Api.new(login, password)
 
 task :message_vendors do
 	message = ""
@@ -31,12 +31,8 @@ task :message_vendors do
 		# correct grammar for number of confirmed orders]
 
 
-		# use twilio to send sms, :to => number, :from => google_voice_number, :message => message
-		@client.account.sms.messages.create(
-			from: APP_CONFIG["from_number"],
-		  to: number,
-		  body: message
-		)
+		# use google voice to send sms
+		@api.sms(number, message)
 
 		# write "Awaiting Response" into Status column in @doc if sms is successful
 		for row in 2..@doc.num_rows

@@ -3,6 +3,6 @@ source "https://rubygems.org"
 
 # gem "rails"
 gem 'rake'
-gem 'twilio-ruby'
+gem 'googlevoiceapi'
 gem 'google_drive'
 gem 'rspec'
