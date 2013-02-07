@@ -5,5 +5,3 @@ gvoice_login: get_from_admin
 gvoice_password: get_from_admin
 
 spreadsheet_title: the_spreadsheet_title
-
-from_number: them_digits
