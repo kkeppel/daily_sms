@@ -3,3 +3,7 @@ google_password: your_google_password
 
 twilio_sid: get_from_admin
 twilio_auth_token: get_from_admin
+
+spreadsheet_title: the_spreadsheet_title
+
+from_number: them_digits
