@@ -1,6 +1,10 @@
 require 'twilio-ruby'
 require 'google_drive'
 
+$LOAD_PATH << File.dirname(__FILE__)
+
+require 'models/init'
+
 APP_CONFIG = YAML::load_file("config.yml")
 
 # Google Drive credentials
