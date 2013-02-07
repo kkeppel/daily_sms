@@ -2,49 +2,49 @@ class OrderRequest < Sequel::Model
 	one_to_one :order_proposal, :key=> :order_id
 	many_to_one :client
 	one_to_many :catering_extras
+	def self.confirmations
+		self.find_by_sql("SELECT vendors.name AS vendor,
+				order_proposals.vendor_id,
+				order_requests.id_order AS 'o_id',
+				DATE_FORMAT( order_requests.order_for, '%l:%i %p') AS 'order_time',
+				companies.name AS 'client',
+				order_requests.last_updates AS 'notes',
+				order_requests.order_status_id as 'status'
 
-	dataset_module do
-		def active
-			where{last_updated > Date.today-14}
-		end
+			FROM order_requests, order_proposals, companies, clients, vendors
+
+			WHERE order_requests.id_order = order_proposals.order_id
+				AND order_requests.client_id = clients.id_client
+				AND clients.company_id = companies.id_company
+				AND order_proposals.vendor_id = vendors.id_vendor
+				AND order_proposals.vendor_id = '#{vendor.id}'
+				AND DATE( order_requests.order_for ) = '#{Date.today}'
+				AND order_proposals.selected = 1
+				AND order_requests.order_status_id = 4
+
+			ORDER BY vendor_id, order_for")
 	end
 
-	set_dataset(self.active)
+	def self.cancelations
+		find_by_sql("SELECT vendors.name AS vendor,
+				order_proposals.vendor_id,
+				order_requests.id_order AS 'o_id',
+				DATE_FORMAT( order_requests.order_for, '%l:%i %p') AS 'order_time',
+				companies.name AS 'client',
+				order_requests.last_updates AS 'notes',
+				order_requests.order_status_id as 'status'
 
-	def arrival_time
-		increment_by = client.client_profile.profile_delivery_diff=="Easy" ? 15*60 : 25*60
-		(order_time-increment_by).strftime("%H:%M %P")
-	end
-	def order_date
-		order_time.strftime("%A %B %d %Y")
-	end
-	def setup_time
-		order_time.strftime("%H:%M %P")
-	end
-	def order_time
-		Time.parse("#{order_for}#{TIMEZONE}")
-	end
-	def delivery_instructions
-		client.delivery_instructions
-	end
-	def delivery_address
-		client.company.address ? client.company.full_address : client.client_profile.full_address
-	end
-	def serving_instructions
-		instruction = order_proposal.try(:serving_instructions) || []
-		instruction.collect(&:label)
-	end
-	def difficulty
-		client.client_profile.profile_delivery_diff
-	end
-	def status
-		case order_status_id
-			when 4 then "confirmed"
-			when 7 then "canceled"
-			else order_status_id
-		end
-	end
-	def delivery_status
-		order_deliveries.last || OrderDelivery.new
+			FROM order_requests, order_proposals, companies, clients, vendors
+
+			WHERE order_requests.id_order = order_proposals.order_id
+				AND order_requests.client_id = clients.id_client
+				AND clients.company_id = companies.id_company
+				AND order_proposals.vendor_id = vendors.id_vendor
+				AND order_proposals.vendor_id = '#{vendor.id}'
+				AND DATE( order_requests.order_for ) = '#{Date.today}'
+				AND order_proposals.selected = 1
+				AND order_requests.order_status_id = 2
+
+			ORDER BY vendor_id, order_for")
 	end
 end

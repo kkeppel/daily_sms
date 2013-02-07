@@ -27,46 +27,8 @@ task :message_vendors do
 		number = r[0]
 		vendor_name = r[1]
 		vendor = Vendor.where(name: vendor_name)
-		confirmations = OrderRequest.find_by_sql("SELECT vendors.name AS vendor,
-				order_proposals.vendor_id,
-				order_requests.id_order AS 'o_id',
-				DATE_FORMAT( order_requests.order_for, '%l:%i %p') AS 'order_time',
-				companies.name AS 'client',
-				order_requests.last_updates AS 'notes',
-				order_requests.order_status_id as 'status'
-
-			FROM order_requests, order_proposals, companies, clients, vendors
-
-			WHERE order_requests.id_order = order_proposals.order_id
-				AND order_requests.client_id = clients.id_client
-				AND clients.company_id = companies.id_company
-				AND order_proposals.vendor_id = vendors.id_vendor
-				AND order_proposals.vendor_id = '#{vendor.id}'
-				AND DATE( order_requests.order_for ) = '#{Date.today}'
-				AND order_proposals.selected = 1
-				AND order_requests.order_status_id = 4
-
-			ORDER BY vendor_id, order_for")
-		cancellations = OrderRequest.find_by_sql("SELECT vendors.name AS vendor,
-				order_proposals.vendor_id,
-				order_requests.id_order AS 'o_id',
-				DATE_FORMAT( order_requests.order_for, '%l:%i %p') AS 'order_time',
-				companies.name AS 'client',
-				order_requests.last_updates AS 'notes',
-				order_requests.order_status_id as 'status'
-
-			FROM order_requests, order_proposals, companies, clients, vendors
-
-			WHERE order_requests.id_order = order_proposals.order_id
-				AND order_requests.client_id = clients.id_client
-				AND clients.company_id = companies.id_company
-				AND order_proposals.vendor_id = vendors.id_vendor
-				AND order_proposals.vendor_id = '#{vendor.id}'
-				AND DATE( order_requests.order_for ) = '#{Date.today}'
-				AND order_proposals.selected = 1
-				AND order_requests.order_status_id = 2
-
-			ORDER BY vendor_id, order_for")
+		confirmations = OrderRequest.confirmations
+		cancellations = OrderRequest.cancellations
 
 		# correct grammar for number of confirmed orders]
 		if confirmations.empty?
