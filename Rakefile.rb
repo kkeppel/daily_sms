@@ -53,7 +53,7 @@ task :message_vendors do
 	row_data = row_data.uniq{ |r| r[0] }
 
 	row_data.each do |r|
-		number = "+17753387036"#r[0]
+		number = r[0]
 		vendor_name = r[1]
 		message = Vendor.where(name: vendor_name).first.get_message
 
@@ -67,7 +67,7 @@ task :message_vendors do
 		#write "Awaiting Response" into Status column in @doc if sms is successful
 		for row in 2..@doc.num_rows
 			if clean_numbers(@doc[row, 2]) == r[0] or clean_numbers(@doc[row, 6]) == r[0]
-				@doc[row, 4] = "Awaiting Response"
+				@doc[row, 1] = "Awaiting Response"
       end
       @doc.save()
 		end
