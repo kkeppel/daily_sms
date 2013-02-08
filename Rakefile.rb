@@ -5,7 +5,6 @@ require 'mail'
 
 
 $LOAD_PATH << File.dirname(__FILE__)
-
 APP_CONFIG = YAML::load_file("config.yml")
 
 
@@ -14,7 +13,6 @@ login = APP_CONFIG["google_login"]
 pass =  APP_CONFIG["google_password"]
 email_user = APP_CONFIG["email_user"]
 email_pass = APP_CONFIG["email_pass"]
-ENV['DATABASE'] = APP_CONFIG["databse"]
 
 require 'models/init'
 
