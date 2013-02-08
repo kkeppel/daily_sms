@@ -21,7 +21,7 @@ task :message_vendors do
 	message = ""
 	row_data = []
 	# get array of all numbers and vendor names
-	for row in 2..@doc.num_rows/
+	for row in 2..@doc.num_rows
 		row_data << [@doc[row, 2] != "" ? clean_numbers(@doc[row, 2]) : clean_numbers(@doc[row, 6]), @doc[row, 3]]
 	end
 
