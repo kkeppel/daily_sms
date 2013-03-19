@@ -18,7 +18,6 @@ require 'models/init'
 
 # Spreadsheet Setup
 @session = GoogleDrive.login(login, pass)
-# @doc = @session.spreadsheet_by_title("Daily Order Confirmations #{Date.today.month}/#{Date.today.day}").worksheets[0]
 
 # Google Voice Setup
 @api = GoogleVoice::Api.new(login, pass)
@@ -36,26 +35,57 @@ Mail.defaults do
   delivery_method :smtp, options
 end
 
-task :test_spreadsheet_creation do
-	# create spreadsheet for today
+task :message_vendors_ny do
+	puts "Creating the spreadsheet for today! this will take approximately forever...."
 	new_spreadsheet = @session.create_spreadsheet("Daily Order Confirmations #{Date.today.month}/#{Date.today.day}")
 	file = @session.file_by_title(new_spreadsheet.title)
 	file.acl.push(scope_type: "user", scope: "kathykeppel@gmail.com", role: "writer")
 	new_spreadsheet = new_spreadsheet.worksheets[0]
 	new_spreadsheet[1, 1] = "Vendor Name"
 	new_spreadsheet[1, 2] = "Text Number"
-	new_spreadsheet[1, 3] = "Order for Time"
-	new_spreadsheet[1, 4] = "Client Name"
-	new_spreadsheet[1, 5] = "Status"
+	new_spreadsheet[1, 3] = "Status"
 	new_spreadsheet.save()
+	puts "YAY DONE! Let's send some texts!!"
+
+	# test db connection
+	vendors = DB[:vendors]
+	row_data, clients, succeded, failed, current_row_number = [], [], [], [], 2
+	# get array of numbers
+	vendors.each do |vendor|
+		row_data << [clean_numbers(vendor[:MorningText]), vendor[:name]] if vendor[:MorningText] != ""
+	end
+
+	row_data.each do |r|
+		number = r[0]
+		vendor_name = r[1]
+		message = Vendor.where(name: vendor_name).first.get_message
+
+    # use google voice to send sms
+		status = @api.sms(number, message)
+		if status.code.to_i == 200
+    	succeded << "#{number} : #{message}"
+    	puts "	Texted #{vendor_name} at #{number}\n"
+    	new_spreadsheet[current_row_number, 1] = vendor_name
+    	new_spreadsheet[current_row_number, 2] = number
+    	new_spreadsheet[current_row_number, 3] = "Awaiting Response"
+    	new_spreadsheet.save()
+    	current_row_number += 1
+    else
+    	failed << "#{number} : #{message}"
+    end
+	end
+	subject = "Text Confirmations Status for #{Date.today} Send #{succeded.count}; Failed: #{failed.count}"
+	content = ["Succeeded:",succeded.join("\r\n"),"Failed:", failed.join("\r\n")].join("\n")
+	deliver_text_status(subject, content, login)
+
+	puts "Check out your fancy new spreadsheet!!"
 end
 
-task :message_vendors do
+task :message_vendors_sf do
+	@doc = @session.spreadsheet_by_title("Daily Order Confirmations #{Date.today.month}/#{Date.today.day}").worksheets[0]
 	row_data = []
 	succeded = []
 	failed = []
-
-	
 
 	# get array of all numbers and vendor names
 	for row in 2..@doc.num_rows
@@ -87,9 +117,13 @@ task :message_vendors do
       @doc.save()
 		end
 	end
+
 	subject = "Text Confirmations Status for #{Date.today} Send #{succeded.count}; Failed: #{failed.count}"
 	content = ["Succeeded:",succeded.join("\r\n"),"Failed:", failed.join("\r\n")].join("\n")
+	deliver_text_status(subject, content, login)
+end
 
+def deliver_text_status(subject, content, login)
 	Mail.deliver do
 	  # to 'yuriy@cater2.me'
 	  to 'kathy@cater2.me'
