@@ -1,8 +1,10 @@
 class Vendor < Sequel::Model
-	one_to_many :order_proposals
+	one_to_many :order_proposals, :conditions => {:selected => true}
 	many_to_many :order_requests, :join_table=>:order_proposals,:left_key=>:vendor_id, :right_key=>:order_id
-	many_to_many :orders_confirmed_for_today, :clone=>:order_requests, :conditions=>{Sequel.function(:DATE,:order_for)=>Date.today, :order_status_id=>4}
-	many_to_many :orders_canceled_for_today, :clone=>:order_requests, :conditions=>{Sequel.function(:DATE,:order_for)=>Date.today, :order_status_id=>2}
+	many_to_many :orders_confirmed_for_today, :clone=>:order_requests, :conditions=>{Sequel.function(:DATE,:order_for)=>Date.today, :order_status_id=>4, 
+		:order_proposals__selected => true}
+	many_to_many :orders_canceled_for_today, :clone=>:order_requests, :conditions=>{Sequel.function(:DATE,:order_for)=>Date.today, :order_status_id=>2, 
+		:order_proposals__selected => true}
 
 	def get_message
 		message = []

@@ -1,14 +1,16 @@
 class OrderRequest < Sequel::Model
-	one_to_one :order_proposal, :key=> :order_id
-	many_to_one :client
-	one_to_many :catering_extras
+  one_to_one :order_proposal, :key=> :order_id, :conditions => {:selected => true}
+  many_to_one :client
+  one_to_many :catering_extras
   
-  # dataset_module do
+dataset_module do
     def active
-      where(Sequel.qualify(:order_proposals, :selected) => 1)
+      where(:order_status_id=>[2,4])
+      # where(Sequel.function(:DATE,:order_for)=>(Time.now+Time.zone_offset(TIMEZONE)).to_date)
     end
-  # end
-  # set_dataset(self.active)
+  end
+
+  set_dataset(self.active)
 
   def order_time
     order_for.strftime '%l:%M %p'#'%l:%i %p

@@ -39,18 +39,19 @@ task :message_vendors_ny do
 	puts "Creating the spreadsheet for today! this will take approximately forever...."
 	new_spreadsheet = @session.create_spreadsheet("Daily Order Confirmations #{Date.today.month}/#{Date.today.day}")
 	file = @session.file_by_title(new_spreadsheet.title)
-	file.acl.push(scope_type: "user", scope: "kathy@cater2.me", role: "writer")
-	file.acl.push(scope_type: "user", scope: "alex@cater2.me", role: "writer")
-	file.acl.push(scope_type: "user", scope: "david@cater2.me", role: "writer")
-	file.acl.push(scope_type: "user", scope: "kevin@cater2.me", role: "writer")
+	file.acl.push(scope_type: "user", scope: "kathykeppel@gmail.com", role: "writer")
+	# file.acl.push(scope_type: "user", scope: "alex@cater2.me", role: "writer")
+	# file.acl.push(scope_type: "user", scope: "david@cater2.me", role: "writer")
+	# file.acl.push(scope_type: "user", scope: "kevin@cater2.me", role: "writer")
 	new_spreadsheet = new_spreadsheet.worksheets[0]
-	new_spreadsheet.list.keys = ["Vendor Name", "Order For Time", "Text Number", "Status"]
+	new_spreadsheet.list.keys = ["Vendor Name", "Order For Time", "Client Name", "Text Number", "Status"]
 
 	orders_for_today = OrderRequest.where("order_for LIKE '#{Date.today} %'")
 	orders_for_today.each do |order|
-		puts "#{order.order_proposal.vendor.name} : #{order.order_for.strftime('%l:%M %p')}" unless order.order_proposal.nil?
-		unless order.order_proposal.nil?
+		if order.order_proposal.selected == true
+			puts "#{order.order_proposal.vendor.name} : #{order.order_for.strftime('%l:%M %p')}"
 			new_spreadsheet.list.push({"Vendor Name" => order.order_proposal.vendor.name,
+				"Client Name" => order.client.name,
 				"Order For Time" => order.order_for.strftime('%l:%M %p'),
 				"Text Number" => order.order_proposal.vendor.MorningText,
 				"Status" => "Needs Confirmation"})
@@ -77,10 +78,10 @@ task :message_vendors_ny do
 		status = @api.sms(number, message)
 		if status.code.to_i == 200
     	succeded << "#{number} : #{message}"
-    	puts "	Texted #{vendor_name} at #{number}\n"
+    	puts "	Texted #{vendor_name} at #{number} with message: #{message}\n"
 			for row in 2..new_spreadsheet.num_rows
 				if new_spreadsheet[row, 1] == vendor_name
-					new_spreadsheet[row, 4] = "Awaiting Response"
+					new_spreadsheet[row, 5] = "Awaiting Response"
 	      end
 	      new_spreadsheet.save()
 			end
