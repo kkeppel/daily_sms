@@ -37,14 +37,14 @@ end
 
 task :message_vendors_ny do
 	puts "Creating the spreadsheet for today! this will take approximately forever...."
-	new_spreadsheet = @session.create_spreadsheet("Daily Order Confirmations #{Date.today.month}/#{Date.today.day}")
+	master_sheet = @session.spreadsheet_by_title("Daily Order Confirmations Master")
+	new_spreadsheet = master_sheet.duplicate("Daily Order Confirmations #{Date.today.month}/#{Date.today.day}")
 	file = @session.file_by_title(new_spreadsheet.title)
-	file.acl.push(scope_type: "user", scope: "kathykeppel@gmail.com", role: "writer")
+	# file.acl.push(scope_type: "user", scope: "kathy@cater2.me", role: "writer")
 	# file.acl.push(scope_type: "user", scope: "alex@cater2.me", role: "writer")
 	# file.acl.push(scope_type: "user", scope: "david@cater2.me", role: "writer")
 	# file.acl.push(scope_type: "user", scope: "kevin@cater2.me", role: "writer")
 	new_spreadsheet = new_spreadsheet.worksheets[0]
-	new_spreadsheet.list.keys = ["Vendor Name", "Order For Time", "Client Name", "Text Number", "Status"]
 
 	orders_for_today = OrderRequest.where("order_for LIKE '#{Date.today} %'")
 	orders_for_today.each do |order|
@@ -54,7 +54,7 @@ task :message_vendors_ny do
 				"Client Name" => order.client.name,
 				"Order For Time" => order.order_for.strftime('%l:%M %p'),
 				"Text Number" => order.order_proposal.vendor.MorningText,
-				"Status" => "Needs Confirmation"})
+				"Status" => order.order_status_id == 2 ? "Canceled" : "Needs Confirmation"})
 			new_spreadsheet.save()
 		end
 	end
@@ -80,9 +80,7 @@ task :message_vendors_ny do
     	succeded << "#{number} : #{message}"
     	puts "	Texted #{vendor_name} at #{number} with message: #{message}\n"
 			for row in 2..new_spreadsheet.num_rows
-				if new_spreadsheet[row, 1] == vendor_name
-					new_spreadsheet[row, 5] = "Awaiting Response"
-	      end
+				new_spreadsheet[row, 5] = "Awaiting Response" if new_spreadsheet[row, 1] == vendor_name
 	      new_spreadsheet.save()
 			end
     else
@@ -98,10 +96,8 @@ end
 
 task :message_vendors_sf do
 	@doc = @session.spreadsheet_by_title("Daily Order Confirmations #{Date.today.month}/#{Date.today.day}").worksheets[0]
-	row_data = []
-	succeded = []
-	failed = []
-
+	row_data, succeded, failed = [], [], []
+	
 	# get array of all numbers and vendor names
 	for row in 2..@doc.num_rows
 		if @doc[row,1].downcase.match(/text/) #TODO: Change to text
@@ -126,9 +122,7 @@ task :message_vendors_sf do
     end
 		#write "Awaiting Response" into Status column in @doc if sms is successful
 		for row in 2..@doc.num_rows
-			if clean_numbers(@doc[row, 2]) == number or clean_numbers(@doc[row, 6]) == number
-				@doc[row, 1] = "Awaiting Response"
-      end
+			@doc[row, 1] = "Awaiting Response" if clean_numbers(@doc[row, 2]) == number or clean_numbers(@doc[row, 6]) == number
       @doc.save()
 		end
 	end
@@ -147,7 +141,6 @@ def deliver_text_status(subject, content, login)
 	  body content
 	end
 end
-
 
 def clean_numbers(number)
 	number.gsub!(/\D/, '')

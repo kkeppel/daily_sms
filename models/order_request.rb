@@ -6,7 +6,6 @@ class OrderRequest < Sequel::Model
 dataset_module do
     def active
       where(:order_status_id=>[2,4])
-      # where(Sequel.function(:DATE,:order_for)=>(Time.now+Time.zone_offset(TIMEZONE)).to_date)
     end
   end
 
