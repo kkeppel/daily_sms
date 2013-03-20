@@ -40,10 +40,10 @@ task :message_vendors_ny do
 	master_sheet = @session.spreadsheet_by_title("Daily Order Confirmations Master")
 	new_spreadsheet = master_sheet.duplicate("Daily Order Confirmations #{Date.today.month}/#{Date.today.day}")
 	file = @session.file_by_title(new_spreadsheet.title)
-	# file.acl.push(scope_type: "user", scope: "kathy@cater2.me", role: "writer")
-	# file.acl.push(scope_type: "user", scope: "alex@cater2.me", role: "writer")
-	# file.acl.push(scope_type: "user", scope: "david@cater2.me", role: "writer")
-	# file.acl.push(scope_type: "user", scope: "kevin@cater2.me", role: "writer")
+	file.acl.push(scope_type: "user", scope: "kathy@cater2.me", role: "writer")
+	file.acl.push(scope_type: "user", scope: "alex@cater2.me", role: "writer")
+	file.acl.push(scope_type: "user", scope: "david@cater2.me", role: "writer")
+	file.acl.push(scope_type: "user", scope: "kevin@cater2.me", role: "writer")
 	new_spreadsheet = new_spreadsheet.worksheets[0]
 
 	orders_for_today = OrderRequest.where("order_for LIKE '#{Date.today} %'")
