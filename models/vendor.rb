@@ -17,7 +17,7 @@ class Vendor < Sequel::Model
 					when 2 then message.push ", w/utensils+paper ware"
 				end
 				if order.notes
-					message.push " (#{order.notes})"
+					message.push ". Most recent update: #{order.notes}"
 				end
 			end
 		end
@@ -26,8 +26,8 @@ class Vendor < Sequel::Model
 		end
 		case orders_confirmed_for_today.count
 			when 0 then message.push ". Please text back to confirm. Thanks!"
-			when 1 then message.push ". Please text back with the driver's number to confirm. Thanks!"
-			else message.push ". Please text back with the number of the driver(s) to confirm. Thanks!"
+			when 1 then message.push ". Please confirm. If not you, text back with the number of the driver to confirm. Thanks!"
+			else message.push ". Please confirm. If not you, text back with the number of the driver(s) to confirm. Thanks!"
 		end
 		message.join("")
 	end

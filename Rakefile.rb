@@ -39,12 +39,25 @@ task :message_vendors_ny do
 	puts "Creating the spreadsheet for today! this will take approximately forever...."
 	new_spreadsheet = @session.create_spreadsheet("Daily Order Confirmations #{Date.today.month}/#{Date.today.day}")
 	file = @session.file_by_title(new_spreadsheet.title)
-	file.acl.push(scope_type: "user", scope: "kathykeppel@gmail.com", role: "writer")
+	file.acl.push(scope_type: "user", scope: "kathy@cater2.me", role: "writer")
+	file.acl.push(scope_type: "user", scope: "alex@cater2.me", role: "writer")
+	file.acl.push(scope_type: "user", scope: "david@cater2.me", role: "writer")
+	file.acl.push(scope_type: "user", scope: "kevin@cater2.me", role: "writer")
 	new_spreadsheet = new_spreadsheet.worksheets[0]
-	new_spreadsheet[1, 1] = "Vendor Name"
-	new_spreadsheet[1, 2] = "Text Number"
-	new_spreadsheet[1, 3] = "Status"
-	new_spreadsheet.save()
+	new_spreadsheet.list.keys = ["Vendor Name", "Order For Time", "Text Number", "Status"]
+
+	orders_for_today = OrderRequest.where("order_for LIKE '#{Date.today} %'")
+	orders_for_today.each do |order|
+		puts "#{order.order_proposal.vendor.name} : #{order.order_for.strftime('%l:%M %p')}" unless order.order_proposal.nil?
+		unless order.order_proposal.nil?
+			new_spreadsheet.list.push({"Vendor Name" => order.order_proposal.vendor.name,
+				"Order For Time" => order.order_for.strftime('%l:%M %p'),
+				"Text Number" => order.order_proposal.vendor.MorningText,
+				"Status" => "Needs Confirmation"})
+			new_spreadsheet.save()
+		end
+	end
+
 	puts "YAY DONE! Let's send some texts!!"
 
 	# test db connection
@@ -65,11 +78,12 @@ task :message_vendors_ny do
 		if status.code.to_i == 200
     	succeded << "#{number} : #{message}"
     	puts "	Texted #{vendor_name} at #{number}\n"
-    	new_spreadsheet[current_row_number, 1] = vendor_name
-    	new_spreadsheet[current_row_number, 2] = number
-    	new_spreadsheet[current_row_number, 3] = "Awaiting Response"
-    	new_spreadsheet.save()
-    	current_row_number += 1
+			for row in 2..new_spreadsheet.num_rows
+				if new_spreadsheet[row, 1] == vendor_name
+					new_spreadsheet[row, 4] = "Awaiting Response"
+	      end
+	      new_spreadsheet.save()
+			end
     else
     	failed << "#{number} : #{message}"
     end
@@ -111,7 +125,7 @@ task :message_vendors_sf do
     end
 		#write "Awaiting Response" into Status column in @doc if sms is successful
 		for row in 2..@doc.num_rows
-			if clean_numbers(@doc[row, 2]) == r[0] or clean_numbers(@doc[row, 6]) == r[0]
+			if clean_numbers(@doc[row, 2]) == number or clean_numbers(@doc[row, 6]) == number
 				@doc[row, 1] = "Awaiting Response"
       end
       @doc.save()
