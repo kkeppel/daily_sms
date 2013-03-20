@@ -18,7 +18,7 @@ require 'models/init'
 
 # Spreadsheet Setup
 @session = GoogleDrive.login(login, pass)
-# @doc = @session.spreadsheet_by_title("Daily Order Confirmations #{Date.today.month}/#{Date.today.day}").worksheets[0]
+@doc = @session.spreadsheet_by_title("Daily Order Confirmations #{Date.today.month}/#{Date.today.day}").worksheets[0]
 
 # Google Voice Setup
 @api = GoogleVoice::Api.new(login, pass)
@@ -91,8 +91,7 @@ task :message_vendors do
 	content = ["Succeeded:",succeded.join("\r\n"),"Failed:", failed.join("\r\n")].join("\n")
 
 	Mail.deliver do
-	  # to 'yuriy@cater2.me'
-	  to 'kathy@cater2.me'
+	  to 'yuriy@cater2.me'
 	  from login
 	  subject subject
 	  body content
