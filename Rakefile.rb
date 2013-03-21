@@ -40,33 +40,33 @@ task :message_vendors_ny do
 	master_sheet = @session.spreadsheet_by_title("Daily Order Confirmations Master")
 	new_spreadsheet = master_sheet.duplicate("Daily Order Confirmations #{Date.today.month}/#{Date.today.day}")
 	file = @session.file_by_title(new_spreadsheet.title)
-	file.acl.push(scope_type: "user", scope: "kathy@cater2.me", role: "writer")
-	file.acl.push(scope_type: "user", scope: "alex@cater2.me", role: "writer")
-	file.acl.push(scope_type: "user", scope: "david@cater2.me", role: "writer")
-	file.acl.push(scope_type: "user", scope: "kevin@cater2.me", role: "writer")
+	# file.acl.push(scope_type: "user", scope: "kathy@cater2.me", role: "writer")
+	# file.acl.push(scope_type: "user", scope: "alex@cater2.me", role: "writer")
+	# file.acl.push(scope_type: "user", scope: "david@cater2.me", role: "writer")
+	# file.acl.push(scope_type: "user", scope: "kevin@cater2.me", role: "writer")
 	new_spreadsheet = new_spreadsheet.worksheets[0]
 
 	orders_for_today = OrderRequest.where("order_for LIKE '#{Date.today} %'")
 	orders_for_today.each do |order|
-		if order.order_proposal.selected == true
+		# if order.order_proposal.selected == true
 			puts "#{order.order_proposal.vendor.name} : #{order.order_for.strftime('%l:%M %p')}"
 			new_spreadsheet.list.push({"Vendor Name" => order.order_proposal.vendor.name,
 				"Client Name" => order.client.name,
 				"Order For Time" => order.order_for.strftime('%l:%M %p'),
 				"Text Number" => order.order_proposal.vendor.MorningText,
-				"Status" => order.order_status_id == 2 ? "Canceled" : "Needs Confirmation"})
+				"Status" => order.order_status_id == 2 ? "Canceled" : "Call them bitches"})
 			new_spreadsheet.save()
-		end
+		# end
 	end
 
 	puts "YAY DONE! Let's send some texts!!"
 
 	# test db connection
-	vendors = DB[:vendors]
+	vendors = Vendor.all
 	row_data, clients, succeded, failed, current_row_number = [], [], [], [], 2
 	# get array of numbers
 	vendors.each do |vendor|
-		row_data << [clean_numbers(vendor[:MorningText]), vendor[:name]] if vendor[:MorningText] != ""
+		row_data << [vendor.clean_numbers(vendor[:MorningText]), vendor[:name]] if vendor[:MorningText] != ""
 	end
 
 	row_data.each do |r|
@@ -101,7 +101,7 @@ task :message_vendors_sf do
 	# get array of all numbers and vendor names
 	for row in 2..@doc.num_rows
 		if @doc[row,1].downcase.match(/text/) #TODO: Change to text
-			row_data << [@doc[row, 2] != "" ? clean_numbers(@doc[row, 2]) : clean_numbers(@doc[row, 6]), @doc[row, 3]]
+			row_data << [@doc[row, 2] != "" ? Vendor.clean_numbers(@doc[row, 2]) : clean_numbers(@doc[row, 6]), @doc[row, 3]]
 		end
 	end
 
@@ -140,9 +140,4 @@ def deliver_text_status(subject, content, login)
 	  subject subject
 	  body content
 	end
-end
-
-def clean_numbers(number)
-	number.gsub!(/\D/, '')
-	"+1" + number
 end

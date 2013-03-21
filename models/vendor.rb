@@ -38,4 +38,10 @@ class Vendor < Sequel::Model
 	def pluralize(count, singular, plural = nil)
     "#{count || 0} " + ((count == 1 || count =~ /^1(\.0+)?$/) ? singular : (plural || singular.pluralize))
   end
+
+  def clean_numbers(number)
+		number.gsub!(/\D/, '')
+		"+1" + number
+	end
+
 end
