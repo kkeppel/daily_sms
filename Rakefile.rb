@@ -40,23 +40,21 @@ task :message_vendors_ny do
 	master_sheet = @session.spreadsheet_by_title("Daily Order Confirmations Master")
 	new_spreadsheet = master_sheet.duplicate("Daily Order Confirmations #{Date.today.month}/#{Date.today.day}")
 	file = @session.file_by_title(new_spreadsheet.title)
-	# file.acl.push(scope_type: "user", scope: "kathy@cater2.me", role: "writer")
-	# file.acl.push(scope_type: "user", scope: "alex@cater2.me", role: "writer")
-	# file.acl.push(scope_type: "user", scope: "david@cater2.me", role: "writer")
-	# file.acl.push(scope_type: "user", scope: "kevin@cater2.me", role: "writer")
+	file.acl.push(scope_type: "user", scope: "kathy@cater2.me", role: "writer")
+	file.acl.push(scope_type: "user", scope: "alex@cater2.me", role: "writer")
+	file.acl.push(scope_type: "user", scope: "david@cater2.me", role: "writer")
+	file.acl.push(scope_type: "user", scope: "kevin@cater2.me", role: "writer")
 	new_spreadsheet = new_spreadsheet.worksheets[0]
 
 	orders_for_today = OrderRequest.where("order_for LIKE '#{Date.today} %'")
 	orders_for_today.each do |order|
-		# if order.order_proposal.selected == true
-			puts "#{order.order_proposal.vendor.name} : #{order.order_for.strftime('%l:%M %p')}"
-			new_spreadsheet.list.push({"Vendor Name" => order.order_proposal.vendor.name,
-				"Client Name" => order.client.name,
-				"Order For Time" => order.order_for.strftime('%l:%M %p'),
-				"Text Number" => order.order_proposal.vendor.MorningText,
-				"Status" => order.order_status_id == 2 ? "Canceled" : "Call them bitches"})
-			new_spreadsheet.save()
-		# end
+		puts "#{order.order_proposal.vendor.name} : #{order.order_for.strftime('%l:%M %p')}"
+		new_spreadsheet.list.push({"Vendor Name" => order.order_proposal.vendor.name,
+			"Client Name" => order.client.name,
+			"Order For Time" => order.order_for.strftime('%l:%M %p'),
+			"Text Number" => order.order_proposal.vendor.MorningText,
+			"Status" => order.order_status_id == 2 ? "Canceled" : "Call them bitches"})
+		new_spreadsheet.save()
 	end
 
 	puts "YAY DONE! Let's send some texts!!"
