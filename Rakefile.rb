@@ -1,38 +1,88 @@
 require 'googlevoiceapi'
 require 'google_drive'
+require 'sequel'
 require 'yaml'
 require 'mail'
 
 
 $LOAD_PATH << File.dirname(__FILE__)
-APP_CONFIG = YAML::load_file("config.yml")
 
 
-#Credentials
-login = APP_CONFIG["google_login"]
-pass =  APP_CONFIG["google_password"]
-email_user = APP_CONFIG["email_user"]
-email_pass = APP_CONFIG["email_pass"]
+task :environment do
+	location = ENV['location'] || 'SF'
+	APP_CONFIG = YAML::load_file("config.yml")[location]
+	@google_drive = GoogleDrive.login(APP_CONFIG["google"]["login"], APP_CONFIG["google"]["password"])
+	@google_voice = GoogleVoice::Api.new(APP_CONFIG["google"]["login"], APP_CONFIG["google"]["password"])
+	DB = Sequel.connect(adapter: 'mysql2', 
+											host: APP_CONFIG["db"]["host"],
+											database: APP_CONFIG["db"]["database"], 
+											user: APP_CONFIG["db"]["username"], 
+											password: APP_CONFIG["db"]["password"])
+	require 'models/init'
+	Mail.defaults do
+		delivery_method :smtp, {
+			:address              => "smtp.gmail.com",
+			:port                 => 587,
+			:domain								=> "cater2.me",
+			:user_name						=> APP_CONFIG["google"]["login"],
+			:password							=> APP_CONFIG["google"]["password"],
+			:authentication				=>'plain',
+			:enable_starttls_auto => true 
+		}
+	end
+end
+task :create_spreadsheet => :environment do
+	spreadsheet = @google_drive.spreadsheet_by_title("DailyOrdersTemplate").duplicate("Daily Order Confirmations #{Date.today.month}/#{Date.today.day}").worksheets[0]
+	OrderRequest.for_today.each do |order|
+		spreadsheet.list.push({
+			"Completed" => order.order_proposal.vendor.MorningText.length>1 ? "To Text" : "To Call",
+			"Primary Number" => order.order_proposal.vendor.MorningText,
+			"Vendor Name" => order.order_proposal.vendor.name,
+			"Status" => order.order_status_id == 2 ? "Canceled" : "Confirmed",
+			"Order for TIme" => order.order_time,
+			"Phone Number" => "TBD",
+			"tbl_Vendor Contact Info.PersonalNumber" => "TBD",
+			"CompanyName" => order.client.name,
+			"ProposalNumber" => order.order_proposal.id_order_proposal,
+			"UpdateTime" => order.update_time,
+			"UpdateNotes" => order.update_notes,
+			"Notes" => order.notes,
+			"Utensils?" => order.catering_extra_labels.collect(&:label).include?("Utensils") ? "TRUE" : "FALSE",
+			"Paper Ware?" => order.catering_extra_labels.collect(&:label).include?("Paper Ware") ? "TRUE" : "FALSE",
+			"Beverages?" => order.catering_extra_labels.collect(&:label).include?("Beverages") ? "TRUE" : "FALSE",
+			"Folding Tables?" => order.catering_extra_labels.collect(&:label).include?("Folding Tables") ? "TRUE" : "FALSE",
+			"BuyerAddress" => order.delivery_address,
+			"City" => order.delivery_city
+ 	
+# #Completed	
+# #Primary Number	
+# #Vendor Name	
+# #Status	
+# #Order for TIme	
+# Phone Number	=> tbl_VendorContactInfo.Phone Number
+# tbl_Vendor Contact Info.PersonalNumber	
+# #CompanyName	
+# #ProposalNumber	
+# #UpdateTime	
+# #UpdateNotes	
+# ContactFirstName	=> tbl_VendorContactInfo.ContactFirstName
+# SecondaryContacts	=> tbl_VendorContactInfo.SecondaryContacts
+# SecondaryNumbers	=> tbl_VendorContactInfo.SecondaryNumbers
+# SecondaryNotes		=> tbl_VendorContactInfo.SecondaryNotes
+# Food allergies? 	=> tbl_BuyerContactProfles.Food Allergies
 
-require 'models/init'
+# #Notes	
+# #Utensils?	
+# #Paper Ware?	
+# #Beverages?	
+# #Folding Tables?	
+# #BuyerAddress	
+# #City	
+# tbl_BuyerContactInfo.PersonalNumber	
 
-# Spreadsheet Setup
-@session = GoogleDrive.login(login, pass)
-
-# Google Voice Setup
-@api = GoogleVoice::Api.new(login, pass)
-
-# Mail Setup
-options = { :address              => "smtp.gmail.com",
-            :port                 => 587,
-            :domain								=> "cater2.me",
-            :user_name            => email_user,
-            :password             => email_pass,
-            :authentication       => 'plain',
-            :enable_starttls_auto => true  }
-            
-Mail.defaults do
-  delivery_method :smtp, options
+		})
+		spreadsheet.save
+	end
 end
 
 task :message_vendors_ny do

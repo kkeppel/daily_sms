@@ -1,5 +1,18 @@
-google_login: your_google_login
-google_password: your_google_password
-
-email_user: you
-email_pass: your_password
+SF:
+  google:
+    login: LOGIN
+    password: PASSWORD
+  db:
+    username: USER
+    password: PASSWORD
+    host: HOST
+    database: DB
+NY:
+  google:
+    login: LOGIN
+    password: PASSWORD
+  db:
+    username: USER
+    password: PASSWORD
+    host: HOST
+    database: DB
