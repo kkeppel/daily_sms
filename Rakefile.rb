@@ -33,56 +33,35 @@ task :environment do
 end
 task :create_spreadsheet => :environment do
 	spreadsheet = @google_drive.spreadsheet_by_title("DailyOrdersTemplate").duplicate("Daily Order Confirmations #{Date.today.month}/#{Date.today.day}").worksheets[0]
-	OrderRequest.for_today.each do |order|
+	OrderRequest.for_today.eager_graph([{:order_proposal=>:vendor},{:client=>[:client_profile,:company]},:catering_extra_labels]).all.each do |order|
 		spreadsheet.list.push({
 			"Completed" => order.order_proposal.vendor.MorningText.length>1 ? "To Text" : "To Call",
 			"Primary Number" => order.order_proposal.vendor.MorningText,
-			"Vendor Name" => order.order_proposal.vendor.name,
+			"VendorName" => order.order_proposal.vendor.name,
 			"Status" => order.order_status_id == 2 ? "Canceled" : "Confirmed",
-			"Order for TIme" => order.order_time,
-			"Phone Number" => "TBD",
-			"tbl_Vendor Contact Info.PersonalNumber" => "TBD",
+			"OrderForTime" => order.order_time,
+			"PhoneNumber" => order.order_proposal.vendor.phone_number2,
+			"tbl_Vendor Contact Info.PersonalNumber" => order.order_proposal.vendor.personal_number2,
 			"CompanyName" => order.client.name,
 			"ProposalNumber" => order.order_proposal.id_order_proposal,
-			"UpdateTime" => order.update_time,
-			"UpdateNotes" => order.update_notes,
+			"Update Time" => order.update_time,
+			"Update Notes" => order.update_notes,
+      "Contact"  => order.order_proposal.vendor.contact_first_name2,
+      "SecondaryContacts" => order.order_proposal.vendor.secondary_contacts2,
+      "SecondaryNumbers"  => order.order_proposal.vendor.secondary_numbers2,
+      "SecondaryNotes"    => order.order_proposal.vendor.secondary_notes2,
+      "Food allergies?"   => order.client.client_profile.food_allergies_cl,
 			"Notes" => order.notes,
 			"Utensils?" => order.catering_extra_labels.collect(&:label).include?("Utensils") ? "TRUE" : "FALSE",
 			"Paper Ware?" => order.catering_extra_labels.collect(&:label).include?("Paper Ware") ? "TRUE" : "FALSE",
 			"Beverages?" => order.catering_extra_labels.collect(&:label).include?("Beverages") ? "TRUE" : "FALSE",
 			"Folding Tables?" => order.catering_extra_labels.collect(&:label).include?("Folding Tables") ? "TRUE" : "FALSE",
 			"BuyerAddress" => order.delivery_address,
-			"City" => order.delivery_city
- 	
-# #Completed	
-# #Primary Number	
-# #Vendor Name	
-# #Status	
-# #Order for TIme	
-# Phone Number	=> tbl_VendorContactInfo.Phone Number
-# tbl_Vendor Contact Info.PersonalNumber	
-# #CompanyName	
-# #ProposalNumber	
-# #UpdateTime	
-# #UpdateNotes	
-# ContactFirstName	=> tbl_VendorContactInfo.ContactFirstName
-# SecondaryContacts	=> tbl_VendorContactInfo.SecondaryContacts
-# SecondaryNumbers	=> tbl_VendorContactInfo.SecondaryNumbers
-# SecondaryNotes		=> tbl_VendorContactInfo.SecondaryNotes
-# Food allergies? 	=> tbl_BuyerContactProfles.Food Allergies
-
-# #Notes	
-# #Utensils?	
-# #Paper Ware?	
-# #Beverages?	
-# #Folding Tables?	
-# #BuyerAddress	
-# #City	
-# tbl_BuyerContactInfo.PersonalNumber	
-
+			"City" => order.delivery_city,
+ 	    "tbl_BuyerContactInfo.PersonalNumber" => order.client.contacts_personal_number_cl
 		})
-		spreadsheet.save
 	end
+	spreadsheet.save
 end
 
 task :message_vendors_ny do
