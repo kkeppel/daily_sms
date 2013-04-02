@@ -10,7 +10,7 @@ class OrderRequest < Sequel::Model
       where(:order_status_id=>[2,4])
     end
     def for_today
-      where(Sequel.function(:DATE,:order_for)=>(Sequel.function(:DATE,Time.now)))
+      where(Sequel.function(:DATE,:order_for)=>(Sequel.function(:DATE,Time.now))).order(:order_for)
     end
   end
 
