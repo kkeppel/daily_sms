@@ -33,18 +33,19 @@ task :environment do
 end
 task :create_spreadsheet => :environment do
 	spreadsheet = @google_drive.spreadsheet_by_title("DailyOrdersTemplate").duplicate("Daily Order Confirmations #{Date.today.month}/#{Date.today.day}").worksheets[0]
-	OrderRequest.for_today.eager_graph([{:order_proposal=>:vendor},{:client=>[:client_profile,:company]},:catering_extra_labels]).all.each do |order|
+	OrderRequest.for_today.eager_graph([{:order_proposal=>:vendor},{:client=>:company},:client_profile,:catering_extra_labels]).
+	order(Sequel.qualify(:vendor,:name), :order_status_id, :order_for,Sequel.qualify(:order_proposal,:id_order_proposal)).all.each do |order|
 		spreadsheet.list.push({
 			"Completed" => order.order_proposal.vendor.MorningText.length>1 ? "To Text" : "To Call",
 			"Primary Number" => order.order_proposal.vendor.MorningText,
 			"VendorName" => order.order_proposal.vendor.name,
-			"Status" => order.order_status_id == 2 ? "Canceled" : "Confirmed",
+			"OrderStatus" => order.order_status_id == 2 ? "Canceled" : "Confirmed",
 			"OrderForTime" => order.order_time,
 			"PhoneNumber" => order.order_proposal.vendor.phone_number2,
 			"tbl_Vendor Contact Info.PersonalNumber" => order.order_proposal.vendor.personal_number2,
 			"CompanyName" => order.client.name,
 			"ProposalNumber" => order.order_proposal.id_order_proposal,
-			"Update Time" => order.update_time,
+			"UpdateTime" => order.update_time,
 			"Update Notes" => order.update_notes,
       "Contact"  => order.order_proposal.vendor.contact_first_name2,
       "SecondaryContacts" => order.order_proposal.vendor.secondary_contacts2,
