@@ -2,6 +2,9 @@ SF:
   google:
     login: LOGIN
     password: PASSWORD
+  contributors:
+    - email@cater2.me
+    - email2@cater2.me
   db:
     username: USER
     password: PASSWORD
