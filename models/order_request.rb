@@ -1,7 +1,7 @@
 class OrderRequest < Sequel::Model
   one_to_one :order_proposal, :key=> :order_id, :conditions => {:selected => true}
-  many_to_one :client
-  many_to_one :client_profile
+  one_to_one :client, :primary_key=>:client_id, :key=>:id_client
+  one_to_one :client_profile,:primary_key=>:client_profile_id, :key=>:id_profile
   one_to_many :catering_extras
   many_to_many :catering_extra_labels, :join_table=>:catering_extra,:left_key=>:order_request_id,:right_key=>:extra_label_id
 
@@ -10,7 +10,7 @@ class OrderRequest < Sequel::Model
       where(:order_status_id=>[2,4])
     end
     def for_today
-      where(Sequel.function(:DATE,:order_for)=>(Sequel.function(:DATE,Time.now))).order(:order_for)
+      where(Sequel.function(:DATE,:order_for)=>(Sequel.function(:DATE,Time.now)))
     end
   end
 
