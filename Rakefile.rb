@@ -68,9 +68,10 @@ task :message_vendors do
 	row_data = row_data.uniq{ |r| r[0] }
 
 	row_data.each do |r|
-		number = r[0]
 		vendor_name = r[1]
-		message = Vendor.where(name: vendor_name).first.get_message
+    vendor = Vendor.where(name: vendor_name).first
+		message = vendor.get_message
+    number = vendor.MorningText
 
     # use google voice to send sms
 		status = @api.sms(number, message)
