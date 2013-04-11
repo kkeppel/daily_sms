@@ -96,7 +96,7 @@ task :message_vendors => :create_spreadsheet do
     number = r[0]
     vendor_name = r[1]
     message = Vendor.where(name: vendor_name).first.get_message
-    use google voice to send sms
+    #use google voice to send sms
     status = @google_voice.sms(number, message)
     if status.code.to_i == 200
       succeded << "#{number} : #{message}"
