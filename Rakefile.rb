@@ -3,6 +3,7 @@ require 'google_drive'
 require 'sequel'
 require 'yaml'
 require 'mail'
+require 'gcalapi'
 
 
 $LOAD_PATH << File.dirname(__FILE__)
@@ -112,10 +113,218 @@ task :message_vendors => :create_spreadsheet do
 	send_mail(subject, content)
 end
 
+task :sync_calendars => :environment do
+	# cal_db = Calendar.all # EVERYONE
+	cal_db = Calendar.where(company_id: 364).first # TEST
+	# cal_db = Calendar.exclude(company_id: [11, 29, 364]).all # EVERYONE BUT WARBY, 10GEN, AND TEST
+	# cal_db.each do |cal|
+		USERNAME = "calendarNY@cater2.me"
+		PASSWORD = "156cater"
+		@srv = GoogleCalendar::Service.new(USERNAME, PASSWORD)
+		# cal_id = "cater2.me_" + cal.gcal_id + "@group.calendar.google.com"
+		cal_id = "cater2.me_" + cal_db.gcal_id + "@group.calendar.google.com" # TEST
+		@feed = "http://www.google.com/calendar/feeds/"+ cal_id + "/private/full"
+		@calendar = GoogleCalendar::Calendar.new(@srv, @feed)
+		# cal.company.clients.each do |client|
+		cal_db.company.clients.each do |client| # TEST
+			# @client_id, @time_min, @time_max = client.id_client, Date.today, Time.now + (60*60*24*30)
+			@client_id, @time_min, @time_max = 439, Date.today, Time.now + (60*60*24*30) # TEST
+			formatted_start_min = @time_min.strftime("%Y-%m-%dT%H:%M:%S")
+    	formatted_start_max = @time_max.strftime("%Y-%m-%dT%H:%M:%S")
+			events_for_next_month = events(@feed, {"start-min" => formatted_start_min, "start-max" => formatted_start_max})
+			if events_for_next_month != []
+				query_events(events_for_next_month)
+			else
+				orders = orders_for_next_month_for_client(@client_id)
+				orders.each do |order|				
+					one_hour = order.order_for.to_time + (60*60)
+					get_event_description(order)
+					create_events_for_client(@calendar, order, one_hour)
+				end
+			end
+		end
+	# end
+end
+
+def events(feed, conditions = {})
+  ret = @srv.query(feed, conditions)
+  raise InvalidCalendarURL unless ret.code == "200"
+  REXML::Document.new(ret.body).root.elements.each("entry"){}.map do |elem|
+    elem.attributes["xmlns:gCal"] = "http://schemas.google.com/gCal/2005"
+    elem.attributes["xmlns:gd"] = "http://schemas.google.com/g/2005"
+    elem.attributes["xmlns"] = "http://www.w3.org/2005/Atom"
+    entry = GoogleCalendar::Event.new
+    entry.srv = @srv
+    entry.load_xml("<?xml version='1.0' encoding='UTF-8'?>#{elem.to_s}")
+  end
+end
+
+def query_events(events)
+	events.is_a?(Array) ? events.each { |event| update_event(event, array=true) } : update_event(events, array=false)
+end
+
+def update_event(event, array=false)
+	event_for = event.st.to_time
+	event_vendor_id = Vendor.where(public_name: event.title).first.id_vendor
+	@order = get_order_for_event(event).first
+	@order.order_proposals.each do |prop|
+		order_vendor_id = prop.vendor_id
+		unless order_vendor_id == event_vendor_id
+			puts "VENDOR CHANGED!!!!!"
+			# update_vendor(@order, event)
+		end
+	end
+
+	unless @order.order_for == event_for
+		puts "TIME CHANGED!!!"
+		# delete_event_and_update_time(@order, event)
+	end
+
+	check_items(event)
+end
+
+def get_order_for_event(event)
+	oid1 = event.desc.split("id='order_id' value='")[1]
+	order_id = oid1.split("'")[0]
+	OrderRequest.where(id_order: order_id)
+end
+
+def check_items(event)
+	event_vendor = event.title
+	event_items, event_item_ids, event_item_descriptions = [], [], []
+	event.desc.scan(/vendor_item_id' value='(.*?)ont>\n/m){|x| event_item_descriptions << x}
+	event.desc.scan(/vendor_item_id' value='+\d{3,4}/){|x| event_items << x }
+	event_items.each { |e| e.scan(/\d{3,4}/) { |n| event_item_ids << n.to_i}}
+	event_item_descriptions.each do |this_item|
+		item_id = this_item[0].split("'")[0].to_i
+		cat = this_item[0].match(/<b>(.*?)b>/m).to_s.gsub("<b>","").gsub("</b>","").strip
+		# if cat.nil? cat = previous_item_cat
+		item_name = this_item[0].match(/\* (.*?)(\s|\S):/m).to_s.gsub("*","").gsub(":","").strip
+		item_description = this_item[0].match(/\: (.*?) \(/m).to_s.gsub(": ","").gsub(" (","").strip
+		# if item_description.nil? do something
+		item_glu = this_item[0].include?("(G)")
+		item_dai = this_item[0].include?("(D)")
+		item_nut = this_item[0].include?("(N)")
+		item_egg = this_item[0].include?("(E)")
+		item_soy = this_item[0].include?("(S)")
+		item_hon = this_item[0].include?("(Contains honey)")
+		item_she = this_item[0].include?("(Contains shellfish)")
+		item_alc = this_item[0].include?("(Contains alcohol)")
+
+		order_item = VendorItem.where(id_vendor_item: item_id).first
+		if item_name != order_item.menu_name || item_description != order_item.description || item_glu != order_item.gluten_safe || item_dai != order_item.dairy_safe || item_nut != order_item.nut_safe || item_egg != order_item.egg_safe || item_soy != order_item.soy_safe || item_hon != order_item.contains_honey || item_she != order_item.contains_shellfish || item_alc != order_item.contains_alcohol
+			puts "ITEM CHANGED!!!!"
+			get_event_description(@order)
+			delete_event_and_update_time(@order, event)
+		end
+			# item.vegetarian ? veg = '*' : veg = ''
+			# (item.vegetarian && item.dairy_safe && item.egg_safe) ? vegan = '*' : vegan = ''
+	end
+end
+
+def update_vendor(order, event)
+	new_vendor = order.order_proposals[0].vendor.name
+	one_hour = order.order_for.to_time + (60*60)
+	event.destroy!
+	event = @calendar.create_event
+	event.title = order.order_proposal.vendor.name
+	event.st = order.order_for
+	event.en = one_hour
+	event.desc = @description
+	event.save!
+end
+
+def delete_event_and_update_time(order, event)
+	one_hour = order.order_for.to_time + (60*60)
+	puts "DONE!"
+	event.destroy!
+	event = @calendar.create_event
+	event.title = order.order_proposals[0].vendor.name
+	event.st = order.order_for
+	event.en = one_hour
+	event.desc = @description
+	event.save!
+end
+
+def orders_for_next_month_for_client(client)
+	time_min = Date.today
+  time_max = Time.now + (60*60*24*30)
+  OrderRequest.where("order_for BETWEEN ? and ?", time_min, time_max).where(client_id: client).all
+end
+
+def get_event_description(order)
+	order.order_proposals.each do |prop|
+		@order_vendor_name = prop.vendor.public_name
+		items = 
+			VendorItem.join(order_proposal_items: :vendor_item_id).join(food_categories: :food_category_id)
+			.where("id_food_category = food_category_id
+						   AND id_vendor_item = vendor_item_id
+						   	AND list_order < 19
+						   AND order_proposal_id = '"+prop.id_order_proposal.to_s + "'")
+		last_category = "-"
+		@description = "<a href='http://cater2.me/dashboard/feedback/?oid=" + order.id_order.to_s + "'>" + prop.vendor.public_name + " Feedback</a>\n"
+		@description += "<input type='hidden' id='order_id' value='#{order.id_order}'></input>"
+		items.each do |item|
+			@description += "<input type='hidden' id='vendor_item_id' value='#{item.id_vendor_item}'>start_item</input>"
+
+			item.vegetarian ? veg = '*' : veg = ''
+			item.gluten_safe ? glu = '(G)' : glu = ''
+			item.dairy_safe ? dai = '(D)' : dai = ''
+			(item.vegetarian && item.dairy_safe && item.egg_safe) ? vegan = '*' : vegan = ''
+			item.nut_safe ? nut = '(N)' : nut = ''
+			item.egg_safe ? egg_safe = '(E)'	: egg_safe = ''
+			item.soy_safe ? soy = '(S)' : soy = ''
+			item.contains_honey ? hon = '(Contains honey)' : hon = ''
+			item.contains_shellfish ? she = '(Contains shellfish)' : she = ''
+			item.contains_alcohol ? alc = '(Contains alcohol)' : alc = ''
+			
+			if last_category != item.food_category_label(item)
+				@description += "\n<b>" + item.food_category_label(item) + "</b>\n"
+				last_category = item.food_category_label(item)
+			end
+
+			temp = ""
+			temp += item.description ? (': ' + item.description) : ''
+			temp += item.notes ? (' (' + item.notes + ')') : ''
+
+			@description += '* ' 
+			@description += item.menu_name
+			@description += veg
+			@description += vegan
+			@description += temp
+			@description += " <font size='1' color='#990066'>"
+			@description += " "
+			@description += glu
+			@description += dai
+			@description += nut
+			@description += egg_safe
+			@description += soy
+			@description += hon
+			@description += she
+			@description += alc
+			@description += "</font>\n"
+			
+			@description += "<input type='hidden'>end_item</input>"
+		end
+		legend = "\n"+'<b>Allergen Key:</b> *Vegetarian, **Vegan, (G) Gluten Safe, (D) Dairy Safe, (N) Nut Safe, (E) Egg Safe, (S) Soy Safe.' + "\n" +'Items have been prepared in facilities that may contain trace amounts of common allergens. See below for full disclaimer.'
+		@description += legend
+	end
+end
+
+def create_events_for_client(cal, order, one_hour)
+	event = cal.create_event
+	event.title =  @order_vendor_name
+	event.st = order.order_for
+	event.en = one_hour
+	event.desc = @description
+	event.save!
+end
+
 def send_mail(subject, content)
 	Mail.deliver do
-	  to 'yuriy@cater2.me'
-	  from 'yuriy@cater2.me'
+	  # to 'yuriy@cater2.me'
+	  to 'kathy@cater2.me'
+	  from 'kathy@cater2.me'
 	  subject subject
 	  body content
 	end

@@ -6,6 +6,7 @@ class OrderProposal < Sequel::Model
   end
   set_dataset(self.confirmed)
   many_to_one :vendor
-  one_to_one :order_request, :key=>:id_order
+  many_to_one :order_request, :key=>:id_order
+  one_to_many :order_proposal_items
 
 end

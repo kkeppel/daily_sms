@@ -1,6 +1,6 @@
 class Client < Sequel::Model
-	one_to_many :order_request
-	many_to_one :company
+  one_to_many :order_request
+  many_to_one :company
   one_to_one :client_profile
   
   def name
@@ -11,5 +11,8 @@ class Client < Sequel::Model
   end
   def city
     (client_profile.delivery_city.strip.length > 1) ? client_profile.delivery_city : company.city
+  end
+  def format_name_for_gcal
+    "Cater2.me - " + name + " meals"
   end
 end

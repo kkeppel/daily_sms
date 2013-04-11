@@ -6,6 +6,7 @@ GEM
       unf (~> 0.0.3)
     faraday (0.8.5)
       multipart-post (~> 1.1)
+    gcalapi (0.1.2)
     google_drive (0.3.3)
       nokogiri (>= 1.4.4, != 1.5.2, != 1.5.1)
       oauth (>= 0.3.6)
@@ -69,6 +70,7 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
+  gcalapi
   google_drive
   googlevoiceapi
   mail
