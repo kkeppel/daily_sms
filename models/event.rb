@@ -1,5 +1,9 @@
 class Event
 
+	def initialize
+		@srv = GoogleCalendar::Service.new(APP_CONFIG["calendar"]["login"], APP_CONFIG["calendar"]["password"])
+	end
+
 	def self.query_events(events, calendar)
 		events.is_a?(Array) ? events.each { |event| update_event(event, calendar, array=true) } : update_event(events, calendar, array=false)
 	end
@@ -27,6 +31,11 @@ class Event
 		oid1 = event.desc.split("id='order_id' value='")[1]
 		order_id = oid1.split("'")[0]
 		OrderRequest.where(id_order: order_id)
+	end
+
+	def self.delete_and_recreate_event(order, event, calendar)
+		event.destroy!
+		create_events_for_client(calendar, order)
 	end
 
 	def self.create_events_for_client(calendar, order)

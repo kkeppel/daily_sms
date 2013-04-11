@@ -10,6 +10,10 @@ SF:
     password: PASSWORD
     host: HOST
     database: DB
+  calendar:
+    login: LOGIN
+    password: PASSWORD
+  status_mail_to: yuriy@cater2.me
 NY:
   google:
     login: LOGIN
@@ -19,3 +23,7 @@ NY:
     password: PASSWORD
     host: HOST
     database: DB
+  calendar:
+    login: calendarNY@cater2.me
+    password: 156cater
+  status_mail_to: kathy@cater2.me
