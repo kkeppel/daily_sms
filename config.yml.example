@@ -1,5 +1,20 @@
-google_login: your_google_login
-google_password: your_google_password
-
-email_user: you
-email_pass: your_password
+SF:
+  google:
+    login: <YOUR GOOGLE LOGIN>
+    password: <YOUR GOOGLE PASSWORD>
+    spreadsheet_key: <GOOGLE SPREADSHEET KEY>
+  db:
+    username: <MYSQL USER>
+    password: <MYSQL PASS>
+    host: <MYSQL HOST>
+    database: <MYSQL DB>
+NY:
+  google:
+    login: <YOUR GOOGLE LOGIN>
+    password: <YOUR GOOGLE PASSWORD>
+    spreadsheet_key: <GOOGLE SPREADSHEET KEY>
+  db:
+    username: <MYSQL USER>
+    password: <MYSQL PASS>
+    host: <MYSQL HOST>
+    database: <MYSQL DB>
