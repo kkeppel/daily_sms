@@ -115,7 +115,7 @@ end
 
 task :sync_calendars => :environment do
 	# cal_db = Calendar.all # EVERYONE
-	cal_db = Calendar.where(company_id: 364).first # TEST
+	cal_db = Calendar.where(company_id: 366).first # TEST
 	# cal_db = Calendar.exclude(company_id: [11, 29, 364]).all # EVERYONE BUT WARBY, 10GEN, AND TEST
 	# cal_db.each do |cal|
 		USERNAME = "calendarNY@cater2.me"
@@ -128,7 +128,7 @@ task :sync_calendars => :environment do
 		# cal.company.clients.each do |client|
 		cal_db.company.clients.each do |client| # TEST
 			# @client_id, @time_min, @time_max = client.id_client, Date.today, Time.now + (60*60*24*30)
-			@client_id, @time_min, @time_max = 439, Date.today, Time.now + (60*60*24*30) # TEST
+			@client_id, @time_min, @time_max = client.id_client, Date.today, Time.now + (60*60*24*30) # TEST
 			formatted_start_min = @time_min.strftime("%Y-%m-%dT%H:%M:%S")
     	formatted_start_max = @time_max.strftime("%Y-%m-%dT%H:%M:%S")
 			events_for_next_month = events(@feed, {"start-min" => formatted_start_min, "start-max" => formatted_start_max})
@@ -136,10 +136,11 @@ task :sync_calendars => :environment do
 				query_events(events_for_next_month)
 			else
 				orders = orders_for_next_month_for_client(@client_id)
+				puts "ORDERS! #{orders}"
 				orders.each do |order|				
 					one_hour = order.order_for.to_time + (60*60)
 					get_event_description(order)
-					create_events_for_client(@calendar, order, one_hour)
+					# create_events_for_client(@calendar, order, one_hour)
 				end
 			end
 		end
@@ -191,17 +192,19 @@ end
 
 def check_items(event)
 	event_vendor = event.title
-	event_items, event_item_ids, event_item_descriptions = [], [], []
+	event_items, event_item_ids, event_item_descriptions, previous_item_cat, item_vegan, order_vegan = [], [], [], "", false, false
 	event.desc.scan(/vendor_item_id' value='(.*?)ont>\n/m){|x| event_item_descriptions << x}
 	event.desc.scan(/vendor_item_id' value='+\d{3,4}/){|x| event_items << x }
 	event_items.each { |e| e.scan(/\d{3,4}/) { |n| event_item_ids << n.to_i}}
 	event_item_descriptions.each do |this_item|
 		item_id = this_item[0].split("'")[0].to_i
 		cat = this_item[0].match(/<b>(.*?)b>/m).to_s.gsub("<b>","").gsub("</b>","").strip
-		# if cat.nil? cat = previous_item_cat
+		cat = cat == "" ? previous_item_cat : cat
+		cat_id = FoodCategory.where(label: cat).first.id_food_category
 		item_name = this_item[0].match(/\* (.*?)(\s|\S):/m).to_s.gsub("*","").gsub(":","").strip
+		veg_check = this_item[0].match(/\* (.*?)(\s|\S):/m).to_s.gsub("* ","").gsub(":","")
 		item_description = this_item[0].match(/\: (.*?) \(/m).to_s.gsub(": ","").gsub(" (","").strip
-		# if item_description.nil? do something
+		item_veg = veg_check.include?("*")
 		item_glu = this_item[0].include?("(G)")
 		item_dai = this_item[0].include?("(D)")
 		item_nut = this_item[0].include?("(N)")
@@ -210,15 +213,17 @@ def check_items(event)
 		item_hon = this_item[0].include?("(Contains honey)")
 		item_she = this_item[0].include?("(Contains shellfish)")
 		item_alc = this_item[0].include?("(Contains alcohol)")
+		item_vegan = true if (item_veg && item_dai && item_egg)
 
 		order_item = VendorItem.where(id_vendor_item: item_id).first
-		if item_name != order_item.menu_name || item_description != order_item.description || item_glu != order_item.gluten_safe || item_dai != order_item.dairy_safe || item_nut != order_item.nut_safe || item_egg != order_item.egg_safe || item_soy != order_item.soy_safe || item_hon != order_item.contains_honey || item_she != order_item.contains_shellfish || item_alc != order_item.contains_alcohol
+		order_vegan = true if (order_item.vegetarian && order_item.dairy_safe && order_item.egg_safe)
+		puts "VEG! #{order_vegan}"
+		if item_name != order_item.menu_name || item_description != order_item.description || item_glu != order_item.gluten_safe || item_dai != order_item.dairy_safe || item_nut != order_item.nut_safe || item_egg != order_item.egg_safe || item_soy != order_item.soy_safe || item_hon != order_item.contains_honey || item_she != order_item.contains_shellfish || item_alc != order_item.contains_alcohol || cat_id != order_item.food_category_id || item_veg != order_item.vegetarian || item_vegan != order_vegan
 			puts "ITEM CHANGED!!!!"
 			get_event_description(@order)
-			delete_event_and_update_time(@order, event)
+			# delete_event_and_update_time(@order, event)
 		end
-			# item.vegetarian ? veg = '*' : veg = ''
-			# (item.vegetarian && item.dairy_safe && item.egg_safe) ? vegan = '*' : vegan = ''
+		previous_item_cat = cat unless cat == ""
 	end
 end
 
