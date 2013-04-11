@@ -12,6 +12,9 @@ class OrderRequest < Sequel::Model
     def for_today
       where(Sequel.function(:DATE,:order_for)=>(Sequel.function(:DATE,Time.now)))
     end
+    def orders_for_next_month_for_client(client, time_min, time_max)
+      where("order_for BETWEEN ? and ?", time_min, time_max).where(client_id: client)
+    end
   end
 
   set_dataset(self.active)
