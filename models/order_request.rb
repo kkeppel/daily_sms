@@ -1,5 +1,5 @@
 class OrderRequest < Sequel::Model
-  one_to_many :order_proposals, :key=> :order_id, :conditions => {:selected => true}
+  one_to_one :order_proposal, :key=> :order_id, :conditions => {:selected => true}
   one_to_one :client, :primary_key=>:client_id, :key=>:id_client
   one_to_one :client_profile,:primary_key=>:client_profile_id, :key=>:id_profile
   one_to_many :catering_extras

@@ -12,18 +12,14 @@ class Event
 		event_for = event.st.to_time
 		event_vendor_id = Vendor.where(public_name: event.title).first.id_vendor
 		order = get_order_for_event(event).first
-		order.order_proposals.each do |prop|
-			order_vendor_id = prop.vendor_id
-			unless order_vendor_id == event_vendor_id
-				puts "VENDOR CHANGED!!!!!"
-				delete_and_recreate_event(order, event, calendar)
-			end
+		unless order.order_proposal.vendor_id == event_vendor_id
+			puts "VENDOR CHANGED!!!!!"
+			delete_and_recreate_event(order, event, calendar)
 		end
 		unless order.order_for == event_for
 			puts "TIME CHANGED!!!"
 			delete_and_recreate_event(order, event, calendar)
 		end
-
 		check_items(order, event, calendar)
 	end
 
@@ -42,7 +38,7 @@ class Event
 		get_event_description(order)
 		one_hour = order.order_for.to_time + (60*60)
 		event = calendar.create_event
-		event.title =  order.order_proposals[0].vendor.public_name
+		event.title =  order.order_proposal.vendor.public_name
 		event.st = order.order_for
 		event.en = one_hour
 		event.desc = @description
@@ -50,61 +46,50 @@ class Event
 	end
 
 	def self.get_event_description(order)
-		order.order_proposals.each do |prop|
-			items = 
-				VendorItem.join(order_proposal_items: :vendor_item_id).join(food_categories: :food_category_id)
-				.where("id_food_category = food_category_id
-							   AND id_vendor_item = vendor_item_id
-							   	AND list_order < 19
-							   AND order_proposal_id = '"+prop.id_order_proposal.to_s + "'")
-			last_category = "-"
-			@description = "<a href='http://cater2.me/dashboard/feedback/?oid=" + order.id_order.to_s + "'>" + prop.vendor.public_name + " Feedback</a>\n"
-			@description += "<input type='hidden' id='order_id' value='#{order.id_order}'></input>"
-			items.each do |item|
-				@description += "<input type='hidden' id='vendor_item_id' value='#{item.id_vendor_item}'></input>"
+		last_category = "-"
+		@description = "<a href='http://cater2.me/dashboard/feedback/?oid=" + order.id_order.to_s + "'>" + order.order_proposal.vendor.public_name + " Feedback</a>\n"
+		@description += "<input type='hidden' id='order_id' value='#{order.id_order}'></input>"
+		items = order.order_proposal.order_proposal_items
+		items.each do |item|
+			@description += "<input type='hidden' id='vendor_item_id' value='#{item.vendor_item.id_vendor_item}'></input>"
 
-				item.vegetarian ? veg = '*' : veg = ''
-				item.gluten_safe ? glu = '(G)' : glu = ''
-				item.dairy_safe ? dai = '(D)' : dai = ''
-				(item.vegetarian && item.dairy_safe && item.egg_safe) ? vegan = '*' : vegan = ''
-				item.nut_safe ? nut = '(N)' : nut = ''
-				item.egg_safe ? egg_safe = '(E)'	: egg_safe = ''
-				item.soy_safe ? soy = '(S)' : soy = ''
-				item.contains_honey ? hon = '(Contains honey)' : hon = ''
-				item.contains_shellfish ? she = '(Contains shellfish)' : she = ''
-				item.contains_alcohol ? alc = '(Contains alcohol)' : alc = ''
-				
-				if last_category != item.food_category_label(item)
-					@description += "\n<b>" + item.food_category_label(item) + "</b>\n"
-					last_category = item.food_category_label(item)
-				end
-
-				temp = ""
-				temp += item.description ? (': ' + item.description) : ''
-				temp += item.notes ? (' (' + item.notes + ')') : ''
-
-				@description += '* ' 
-				@description += item.menu_name
-				@description += veg
-				@description += vegan
-				@description += temp
-				@description += " <font size='1' color='#990066'>"
-				@description += " "
-				@description += glu
-				@description += dai
-				@description += nut
-				@description += egg_safe
-				@description += soy
-				@description += hon
-				@description += she
-				@description += alc
-				@description += "</font>\n"
-				
-				@description += "<input type='hidden' name='end_item'></input>"
+			item.vendor_item.vegetarian ? veg = '*' : veg = ''
+			item.vendor_item.gluten_safe ? glu = '(G)' : glu = ''
+			item.vendor_item.dairy_safe ? dai = '(D)' : dai = ''
+			(item.vendor_item.vegetarian && item.vendor_item.dairy_safe && item.vendor_item.egg_safe) ? vegan = '*' : vegan = ''
+			item.vendor_item.nut_safe ? nut = '(N)' : nut = ''
+			item.vendor_item.egg_safe ? egg_safe = '(E)'	: egg_safe = ''
+			item.vendor_item.soy_safe ? soy = '(S)' : soy = ''
+			item.vendor_item.contains_honey ? hon = '(Contains honey)' : hon = ''
+			item.vendor_item.contains_shellfish ? she = '(Contains shellfish)' : she = ''
+			item.vendor_item.contains_alcohol ? alc = '(Contains alcohol)' : alc = ''
+			if last_category != item.vendor_item.food_category_label(item.vendor_item)
+				@description += "\n<b>" + item.vendor_item.food_category_label(item.vendor_item) + "</b>\n"
+				last_category = item.vendor_item.food_category_label(item.vendor_item)
 			end
-			legend = "\n"+'<b>Allergen Key:</b> *Vegetarian, **Vegan, (G) Gluten Safe, (D) Dairy Safe, (N) Nut Safe, (E) Egg Safe, (S) Soy Safe.' + "\n" +'Items have been prepared in facilities that may contain trace amounts of common allergens. See below for full disclaimer.'
-			@description += legend
+			temp = ""
+			temp += item.vendor_item.description ? (': ' + item.vendor_item.description) : ''
+			temp += item.vendor_item.notes ? (' (' + item.vendor_item.notes + ')') : ''
+			@description += '* ' 
+			@description += item.vendor_item.menu_name
+			@description += veg
+			@description += vegan
+			@description += temp
+			@description += " <font size='1' color='#990066'>"
+			@description += " "
+			@description += glu
+			@description += dai
+			@description += nut
+			@description += egg_safe
+			@description += soy
+			@description += hon
+			@description += she
+			@description += alc
+			@description += "</font>\n"	
+			@description += "<input type='hidden' name='end_item'></input>"
 		end
+		legend = "\n"+'<b>Allergen Key:</b> *Vegetarian, **Vegan, (G) Gluten Safe, (D) Dairy Safe, (N) Nut Safe, (E) Egg Safe, (S) Soy Safe.' + "\n" +'Items have been prepared in facilities that may contain trace amounts of common allergens. See below for full disclaimer.'
+		@description += legend
 	end
 
 	def self.check_items(order, event, calendar)

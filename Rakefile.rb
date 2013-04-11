@@ -112,7 +112,6 @@ task :sync_calendars => :environment do
 	cal_db = Calendar.where(company_id: 366).first # EVERYONE BUT WARBY, 10GEN, FAB.COM AND TEST
 	# cal_db.each do |cal|
 		@srv = GoogleCalendar::Service.new(APP_CONFIG["calendar"]["login"], APP_CONFIG["calendar"]["password"])
-		# @srv = GoogleCalendar::Service.new(APP_CONFIG["calendar"]["login"], APP_CONFIG["calendar"]["password"])
 		# cal_id = "cater2.me_" + cal.gcal_id + "@group.calendar.google.com"
 		cal_id = "cater2.me_" + cal_db.gcal_id + "@group.calendar.google.com" # TEST
 		feed = "http://www.google.com/calendar/feeds/"+ cal_id + "/private/full"
