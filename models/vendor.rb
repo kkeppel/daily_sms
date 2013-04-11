@@ -16,7 +16,7 @@ class Vendor < Sequel::Model
 			message.push "#{pluralize(orders_confirmed_for_today.count,'order','orders')} for today"
 			orders_confirmed_for_today.each do |order|
 				message.push "; #{order.order_time} for #{order.client.name}"
-				case order.catering_extras.count
+				case order.catering_extras.map{|extra| extra if [2,3].include?(extra.extra_label_id)}.compact.count
 					when 1 then message.push ", w/utensils"
 					when 2 then message.push ", w/utensils+paper ware"
 				end
