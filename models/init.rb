@@ -1,6 +1,8 @@
 require_relative "order_request"
 require_relative "order_proposal"
 require_relative "catering_extra"
+require_relative "catering_extra_label"
 require_relative "vendor"
 require_relative "company"
 require_relative "client"
+require_relative "client_profile"
