@@ -8,5 +8,4 @@ class OrderProposal < Sequel::Model
   many_to_one :vendor
   one_to_one :order_request, :key=>:id_order
   one_to_many :order_proposal_items
-
 end

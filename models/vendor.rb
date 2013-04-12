@@ -5,7 +5,9 @@ class Vendor < Sequel::Model
 		:order_proposals__selected => true}
 	many_to_many :orders_canceled_for_today, :clone=>:order_requests, :conditions=>{Sequel.function(:DATE,:order_for)=>Date.today, :order_status_id=>2, 
 		:order_proposals__selected => true}
-
+	
+	CALL_VENDORS = ["AK Subs","Anatolian Kitchen","Arabian Bites","Arki","Bamboo Asia","Beautifull","Bistro Mozart","Breaking Bread","Bun Mee","Cater2U","CreoLa Bistro","Crystal Springs Catering","DeLessio","Dino's","Golden Flower","Jeffrey's","Jenny's Churros","Macadamia Events & Catering","Mandalay","Mayo & Mustard","Missing Link","Nob Hill Pizza","Old World Food Truck","Opa","Patxi's Campbell","Patxi's Irving","Phat Thai","Purple Plant","Queen's","Santino's","Senor Sisig","Soup Freaks","Source","Spiedo","Tian Sing","Tomkat","Village Cheese House","We Sushi"]
+	
 	def get_message
 		message = []
 		if orders_confirmed_for_today.empty?
@@ -14,7 +16,7 @@ class Vendor < Sequel::Model
 			message.push "#{pluralize(orders_confirmed_for_today.count,'order','orders')} for today"
 			orders_confirmed_for_today.each do |order|
 				message.push "; #{order.order_time} for #{order.client.name}"
-				case order.catering_extras.count
+				case order.catering_extras.map{|extra| extra if [2,3].include?(extra.extra_label_id)}.compact.count
 					when 1 then message.push ", w/utensils"
 					when 2 then message.push ", w/utensils+paper ware"
 				end
@@ -44,4 +46,11 @@ class Vendor < Sequel::Model
 		"+1" + number
 	end
 
+	def notification_preference
+		if CALL_VENDORS.include?(self.name)
+			"To Call"
+		else
+			"To Text"
+		end
+	end
 end

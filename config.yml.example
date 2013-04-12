@@ -1,28 +1,27 @@
 SF:
   google:
-    login: LOGIN
-    password: PASSWORD
-  contributors:
-    - email@cater2.me
-    - email2@cater2.me
+    login: <YOUR GOOGLE LOGIN>
+    password: <YOUR GOOGLE PASSWORD>
+    spreadsheet_key: <GOOGLE SPREADSHEET KEY>
   db:
-    username: USER
-    password: PASSWORD
-    host: HOST
-    database: DB
+    username: <MYSQL USER>
+    password: <MYSQL PASS>
+    host: <MYSQL HOST>
+    database: <MYSQL DB>
   calendar:
     login: LOGIN
     password: PASSWORD
   status_mail_to: yuriy@cater2.me
 NY:
   google:
-    login: LOGIN
-    password: PASSWORD
+    login: <YOUR GOOGLE LOGIN>
+    password: <YOUR GOOGLE PASSWORD>
+    spreadsheet_key: <GOOGLE SPREADSHEET KEY>
   db:
-    username: USER
-    password: PASSWORD
-    host: HOST
-    database: DB
+    username: <MYSQL USER>
+    password: <MYSQL PASS>
+    host: <MYSQL HOST>
+    database: <MYSQL DB>
   calendar:
     login: calendarNY@cater2.me
     password: 156cater
