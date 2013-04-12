@@ -5,20 +5,20 @@ class Event
 	end
 
 	def self.query_events(events, calendar)
-		events.is_a?(Array) ? events.each { |event| update_event(event, calendar, array=true) } : update_event(events, calendar, array=false)
+		events.each { |event| update_event(event, calendar) }
 	end
 
-	def self.update_event(event, calendar, array=false)
+	def self.update_event(event, calendar)
 		event_for = event.st.to_time
 		event_vendor_id = Vendor.where(public_name: event.title).first.id_vendor
 		order = get_order_for_event(event).first
 		puts "vendor = #{event.title}, time = #{event_for}"
 		unless order.order_proposal.vendor_id == event_vendor_id
-			puts "VENDOR CHANGED!!!!!"
+			puts "VENDOR CHANGED!!!!! vendor = #{order.order_proposal.vendor.public_name}"
 			delete_and_recreate_event(order, event, calendar)
 		end
 		unless order.order_for == event_for
-			puts "TIME CHANGED!!!"
+			puts "TIME CHANGED!!! time = #{order.order_for}"
 			delete_and_recreate_event(order, event, calendar)
 		end
 		check_items(order, event, calendar)
@@ -31,7 +31,7 @@ class Event
 	end
 
 	def self.delete_and_recreate_event(order, event, calendar)
-		event.destroy!
+		event.destroy
 		create_events_for_client(calendar, order)
 	end
 
@@ -119,7 +119,7 @@ class Event
 			order_item = VendorItem.where(id_vendor_item: item_id).first
 			order_vegan = true if (order_item.vegetarian && order_item.dairy_safe && order_item.egg_safe)
 			if order_item.nil? || item_name != order_item.menu_name || item_description != order_item.description || item_glu != order_item.gluten_safe || item_dai != order_item.dairy_safe || item_nut != order_item.nut_safe || item_egg != order_item.egg_safe || item_soy != order_item.soy_safe || item_hon != order_item.contains_honey || item_she != order_item.contains_shellfish || item_alc != order_item.contains_alcohol || cat_id != order_item.food_category_id || item_veg != order_item.vegetarian || item_vegan != order_vegan
-				puts "ITEM CHANGED!!!!"
+				puts "ITEM CHANGED!!!!: #{order_item.id_vendor_item}"
 				delete_and_recreate_event(order, event, calendar)
 			end
 			previous_item_cat = cat unless cat == ""

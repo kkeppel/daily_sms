@@ -107,12 +107,11 @@ task :message_vendors => :create_spreadsheet do
 end
 
 task :sync_calendars => :environment do
-	cal_db = Calendar.all # EVERYONE
-	# cal_db = Calendar.exclude(company_id: [11, 29, 30, 366]).all # EVERYONE BUT WARBY, 10GEN, FAB.COM AND TEST
-	# cal_db = Calendar.where(company_id: 11).first # EVERYONE BUT WARBY, 10GEN, FAB.COM AND TEST
-	cal_db.each do |cal|
+	cal_db = Calendar.all # COMMENT OUT TO TEST
+	# cal_db = Calendar.where(company_id: 11).first # TEST FOR ONE COMPANY
+	cal_db.each do |cal| # COMMENT OUT TO TEST
 		@srv = GoogleCalendar::Service.new(APP_CONFIG["calendar"]["login"], APP_CONFIG["calendar"]["password"])
-		cal_id = "cater2.me_" + cal.gcal_id + "@group.calendar.google.com"
+		cal_id = "cater2.me_" + cal.gcal_id + "@group.calendar.google.com" # COMMENT OUT TO TEST
 		# cal_id = "cater2.me_" + cal_db.gcal_id + "@group.calendar.google.com" # TEST
 		feed = "http://www.google.com/calendar/feeds/"+ cal_id + "/private/full"
 		calendar = GoogleCalendar::Calendar.new(@srv, feed)
@@ -121,6 +120,7 @@ task :sync_calendars => :environment do
   	formatted_start_max = time_max.strftime("%Y-%m-%dT%H:%M:%S")
 		events_for_next_month = events(feed, {"start-min" => formatted_start_min, "start-max" => formatted_start_max})
 		if events_for_next_month != []
+			puts "company = #{cal.company_id}"
 			puts "QUERY ORDERS!!!!"
 			Event.query_events(events_for_next_month, calendar)
 		else
@@ -134,23 +134,20 @@ task :sync_calendars => :environment do
 				end
 			end
 		end
-	end
+	end # COMMENT OUT TO TEST
 end
 
 task :destroy_calendars => :environment do
 	@srv = GoogleCalendar::Service.new(APP_CONFIG["calendar"]["login"], APP_CONFIG["calendar"]["password"])
-	time_min, time_max = Time.now, Time.now + (60*60*24*30)
-	formatted_start_min = time_min.strftime("%Y-%m-%dT%H:%M:%S")
-  formatted_start_max = time_max.strftime("%Y-%m-%dT%H:%M:%S")
-	cal_db = Calendar.all
-	cal_db.each do |cal|
+	time_min, time_max = Time.now.strftime("%Y-%m-%dT%H:%M:%S"), (Time.now + (60*60*24*30)).strftime("%Y-%m-%dT%H:%M:%S")
+	Calendar.all.each do |cal|
 		cal_id = "cater2.me_" + cal.gcal_id + "@group.calendar.google.com"
 		feed = "http://www.google.com/calendar/feeds/"+ cal_id + "/private/full"
 		calendar = GoogleCalendar::Calendar.new(@srv, feed)
-		events = events(feed, {"start-min" => formatted_start_min, "start-max" => formatted_start_max})
+		events = events(feed, {"start-min" => time_min, "start-max" => time_max})
 		events.each do |e|
 			e.destroy!
-			puts "deleted calendar: #{cal.company_id}"
+			puts "destroyed calendar for company id: #{cal.company_id}"
 		end
 	end
 end
