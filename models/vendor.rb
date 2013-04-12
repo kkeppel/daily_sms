@@ -21,7 +21,7 @@ class Vendor < Sequel::Model
 					when 2 then message.push ", w/utensils+paper ware"
 				end
 				if order.notes
-					message.push ". Most recent update: #{order.notes}"
+					message.push " (#{order.notes})"
 				end
 			end
 		end
