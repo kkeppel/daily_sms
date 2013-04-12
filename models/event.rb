@@ -12,6 +12,7 @@ class Event
 		event_for = event.st.to_time
 		event_vendor_id = Vendor.where(public_name: event.title).first.id_vendor
 		order = get_order_for_event(event).first
+		puts "vendor = #{event.title}, time = #{event_for}"
 		unless order.order_proposal.vendor_id == event_vendor_id
 			puts "VENDOR CHANGED!!!!!"
 			delete_and_recreate_event(order, event, calendar)

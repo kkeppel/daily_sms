@@ -109,31 +109,50 @@ end
 task :sync_calendars => :environment do
 	cal_db = Calendar.all # EVERYONE
 	# cal_db = Calendar.exclude(company_id: [11, 29, 30, 366]).all # EVERYONE BUT WARBY, 10GEN, FAB.COM AND TEST
-	cal_db = Calendar.where(company_id: 366).first # EVERYONE BUT WARBY, 10GEN, FAB.COM AND TEST
-	# cal_db.each do |cal|
+	# cal_db = Calendar.where(company_id: 11).first # EVERYONE BUT WARBY, 10GEN, FAB.COM AND TEST
+	cal_db.each do |cal|
 		@srv = GoogleCalendar::Service.new(APP_CONFIG["calendar"]["login"], APP_CONFIG["calendar"]["password"])
-		# cal_id = "cater2.me_" + cal.gcal_id + "@group.calendar.google.com"
-		cal_id = "cater2.me_" + cal_db.gcal_id + "@group.calendar.google.com" # TEST
+		cal_id = "cater2.me_" + cal.gcal_id + "@group.calendar.google.com"
+		# cal_id = "cater2.me_" + cal_db.gcal_id + "@group.calendar.google.com" # TEST
 		feed = "http://www.google.com/calendar/feeds/"+ cal_id + "/private/full"
 		calendar = GoogleCalendar::Calendar.new(@srv, feed)
-		# cal.company.clients.each do |client|
-		cal_db.company.clients.each do |client| # TEST
-			client_id, time_min, time_max = client.id_client, Date.today, Time.now + (60*60*24*30)
-			formatted_start_min = time_min.strftime("%Y-%m-%dT%H:%M:%S")
-    	formatted_start_max = time_max.strftime("%Y-%m-%dT%H:%M:%S")
-			events_for_next_month = events(feed, {"start-min" => formatted_start_min, "start-max" => formatted_start_max})
-			if events_for_next_month != []
-				puts "QUERY ORDERS!!!!"
-				Event.query_events(events_for_next_month, calendar)
-			else
-				puts "CREATE ORDERS!!!"
-				orders = OrderRequest.orders_for_next_month_for_client(client_id, time_min, time_max)
+		time_min, time_max = Time.now, Time.now + (60*60*24*30)
+		formatted_start_min = time_min.strftime("%Y-%m-%dT%H:%M:%S")
+  	formatted_start_max = time_max.strftime("%Y-%m-%dT%H:%M:%S")
+		events_for_next_month = events(feed, {"start-min" => formatted_start_min, "start-max" => formatted_start_max})
+		if events_for_next_month != []
+			puts "QUERY ORDERS!!!!"
+			Event.query_events(events_for_next_month, calendar)
+		else
+			puts "CREATE ORDERS!!!"
+			cal.company.clients.each do |client|
+			# cal_db.company.clients.each do |client| #TEST
+				puts "client = #{client.name}, #{client.id_client}"
+				orders = OrderRequest.orders_for_next_month_for_client(client.id_client, time_min, time_max)
 				orders.each do |order|			
 					Event.create_events_for_client(calendar, order)
 				end
 			end
 		end
-	# end
+	end
+end
+
+task :destroy_calendars => :environment do
+	@srv = GoogleCalendar::Service.new(APP_CONFIG["calendar"]["login"], APP_CONFIG["calendar"]["password"])
+	time_min, time_max = Time.now, Time.now + (60*60*24*30)
+	formatted_start_min = time_min.strftime("%Y-%m-%dT%H:%M:%S")
+  formatted_start_max = time_max.strftime("%Y-%m-%dT%H:%M:%S")
+	cal_db = Calendar.all
+	cal_db.each do |cal|
+		cal_id = "cater2.me_" + cal.gcal_id + "@group.calendar.google.com"
+		feed = "http://www.google.com/calendar/feeds/"+ cal_id + "/private/full"
+		calendar = GoogleCalendar::Calendar.new(@srv, feed)
+		events = events(feed, {"start-min" => formatted_start_min, "start-max" => formatted_start_max})
+		events.each do |e|
+			e.destroy!
+			puts "deleted calendar: #{cal.company_id}"
+		end
+	end
 end
 
 def events(feed, conditions = {})
