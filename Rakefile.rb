@@ -116,6 +116,31 @@ task :message_vendors => :create_spreadsheet do
   send_mail(subject, content)
 end
 
+task :wipe_gcal_and_recreate_calendars => :environment do
+  @srv = GoogleCalendar::Service.new(APP_CONFIG["calendar"]["login"], APP_CONFIG["calendar"]["password"])
+  time_min, time_max = Time.now, Time.now + (60*60*24*30)
+  formatted_start_min = time_min.strftime("%Y-%m-%dT%H:%M:%S")
+  formatted_start_max = time_max.strftime("%Y-%m-%dT%H:%M:%S")
+  Calendar.all.each do |cal|
+    cal_id = "cater2.me_" + cal.gcal_id + "@group.calendar.google.com"
+    feed = "http://www.google.com/calendar/feeds/"+ cal_id + "/private/full"
+    calendar = GoogleCalendar::Calendar.new(@srv, feed)
+    events_for_next_month = events(feed, {"start-min" => formatted_start_min, "start-max" => formatted_start_max})
+    events_for_next_month.each do |e|
+      e.destroy!
+      puts "destroyed calendar for company: #{cal.company.name if cal.company.name}, #{cal.company_id}"
+    end
+    puts "CREATE ORDERS!!!"
+    cal.company.clients.each do |client|
+      puts "client = #{client.name}, #{client.id_client}"
+      orders = OrderRequest.orders_for_next_month_for_client(client.id_client, time_min, time_max)
+      orders.each do |order|      
+        Event.create_events_for_client(calendar, order)
+      end
+    end
+  end
+end
+
 task :sync_calendars => :environment do
 	cal_db = Calendar.all # COMMENT OUT TO TEST
 	# cal_db = Calendar.where(company_id: 11).first # TEST FOR ONE COMPANY
