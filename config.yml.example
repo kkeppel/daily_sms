@@ -11,7 +11,7 @@ SF:
   calendar:
     login: LOGIN
     password: PASSWORD
-  status_mail_to: yuriy@cater2.me
+  status_mail_to: <WHO GETS STATUSES????>
 NY:
   google:
     login: <YOUR GOOGLE LOGIN>
@@ -23,6 +23,6 @@ NY:
     host: <MYSQL HOST>
     database: <MYSQL DB>
   calendar:
-    login: calendarNY@cater2.me
-    password: 156cater
-  status_mail_to: kathy@cater2.me
+    login: <CALENDAR LOGIN>
+    password: <CALENDAR PASSWORD>
+  status_mail_to: <WHO GETS STATUSES????>
