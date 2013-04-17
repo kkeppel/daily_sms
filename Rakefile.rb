@@ -118,7 +118,7 @@ end
 
 task :wipe_gcal_and_recreate_calendars => :environment do
   @srv = GoogleCalendar::Service.new(APP_CONFIG["calendar"]["login"], APP_CONFIG["calendar"]["password"])
-  time_min, time_max = Time.now, Time.now + (60*60*24*30)
+  content, time_min, time_max = "", Time.now, Time.now + (60*60*24*30)
   formatted_start_min = time_min.strftime("%Y-%m-%dT%H:%M:%S")
   formatted_start_max = time_max.strftime("%Y-%m-%dT%H:%M:%S")
   Calendar.all.each do |cal|
@@ -129,16 +129,22 @@ task :wipe_gcal_and_recreate_calendars => :environment do
     events_for_next_month.each do |e|
       e.destroy!
       puts "destroyed calendar for company: #{cal.company.name if cal.company.name}, #{cal.company_id}"
+      content += "destroyed calendar for company: #{cal.company.name if cal.company.name}, #{cal.company_id}\n"
     end
     puts "CREATE ORDERS!!!"
+    content += "CREATE ORDERS!!!\n"
     cal.company.clients.each do |client|
       puts "client = #{client.name}, #{client.id_client}"
+      content += "client = #{client.name}, #{client.id_client}"
       orders = OrderRequest.orders_for_next_month_for_client(client.id_client, time_min, time_max)
       orders.each do |order|      
         Event.create_events_for_client(calendar, order)
       end
     end
   end
+  subject = "Calendar Status for #{Date.today}"
+  content = ["Succeeded:",succeded.join("\r\n"),"Failed:", failed.join("\r\n")].join("\n")
+  send_mail(subject, content)
 end
 
 task :sync_calendars => :environment do
