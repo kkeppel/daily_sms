@@ -2,27 +2,35 @@ SF:
   google:
     login: <YOUR GOOGLE LOGIN>
     password: <YOUR GOOGLE PASSWORD>
-    spreadsheet_key: <GOOGLE SPREADSHEET KEY>
+    spreadsheet_key: <YOUR SPREADSHEET KEY>
+  contributors:
+    - email@cater2.me
+    - email2@cater2.me
   db:
-    username: <MYSQL USER>
-    password: <MYSQL PASS>
-    host: <MYSQL HOST>
-    database: <MYSQL DB>
+    username: USER
+    password: PASSWORD
+    host: HOST
+    database: DB
   calendar:
     login: LOGIN
     password: PASSWORD
-  status_mail_to: <WHO GETS STATUSES????>
+  status_mail_to: yuriy@cater2.me
+  call_vendors: ["AK Subs","Anatolian Kitchen","Arabian Bites","Arki","Bamboo Asia","Beautifull","Bistro Mozart","Breaking Bread","Bun Mee","Cater2U","CreoLa Bistro","Crystal Springs Catering","DeLessio","Dino's","Golden Flower","Jeffrey's","Jenny's Churros","Macadamia Events & Catering","Mandalay","Mayo & Mustard","Missing Link","Nob Hill Pizza","Old World Food Truck","Opa","Patxi's Campbell","Patxi's Irving","Phat Thai","Purple Plant","Queen's","Santino's","Senor Sisig","Soup Freaks","Source","Spiedo","Tian Sing","Tomkat","Village Cheese House","We Sushi"]
 NY:
   google:
     login: <YOUR GOOGLE LOGIN>
     password: <YOUR GOOGLE PASSWORD>
-    spreadsheet_key: <GOOGLE SPREADSHEET KEY>
+    spreadsheet_key: <YOUR SPREADSHEET KEY>
+  contributors:
+    - email@cater2.me
+    - email2@cater2.me
   db:
-    username: <MYSQL USER>
-    password: <MYSQL PASS>
-    host: <MYSQL HOST>
-    database: <MYSQL DB>
+    username: USER
+    password: PASSWORD
+    host: HOST
+    database: DB
   calendar:
-    login: <CALENDAR LOGIN>
-    password: <CALENDAR PASSWORD>
-  status_mail_to: <WHO GETS STATUSES????>
+    login: LOGIN
+    password: PASSWORD
+  status_mail_to: kathy@cater2.me
+  call_vendors: ["!Savory","Anthi's","Atlas Cafe","Bagel and Bean","Bagelworks","Bian Dang","BiBiFresh","Bistro Caterers","Bleeker Street Pizza","Bourbon Street","Brooklyn Mac","Brooklyn Oyster Party","Butcher Bar","Carl's Steaks","Cater2.me NYC","Cayenne Catering","Chola","City Sandwich","Clamenza's","Crisp","Dinosaur Bar-B-Que","Eatery","Favela Cubana","FOODfreaks","Galli","Glaze Teriyaki Grill","Graham Avenue Deli","Indian Creperie","Jing","Jing Sushi","Junko's Kitchen","Just Salad","Kashkaval","Korilla BBQ","kosofresh","La Bella Torte","La Casa de Camba","La Lucha","Lagniappe Doughnuts","Lamazou Cheese","Landhaus","Local Cafe","Lorimer Market","Mark","Mayhem and Stout","Mimi and Coco","Miss Elisabeth's","Moustache","Mrs. Dorsey's Kitchen","Nucha's","Palenque","Peter's Since 1969","Pita Pan","Ponty Bistro","Previti","Rafaella","Reena's Treats","Robicelli's","S'more Bakery","Sao Mai","Shalom Bombay","Solber Pupusas","Sushi Shop","Teany","The Counter","Tuck Shop","Turco Mediterranean","Tuscany Catering","Uncle Moe's","Valducci's Pizza","Via Emilia","Wafels and Dinges","Waffle and Wolf","WaffleWich Way","Yushi Asian Kitchen","Zizi Limona"]

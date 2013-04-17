@@ -6,11 +6,6 @@ class Vendor < Sequel::Model
 	many_to_many :orders_canceled_for_today, :clone=>:order_requests, :conditions=>{Sequel.function(:DATE,:order_for)=>Date.today, :order_status_id=>2, 
 		:order_proposals__selected => true}
 	
-	sf_call_vendors = ["AK Subs","Anatolian Kitchen","Arabian Bites","Arki","Bamboo Asia","Beautifull","Bistro Mozart","Breaking Bread","Bun Mee","Cater2U","CreoLa Bistro","Crystal Springs Catering","DeLessio","Dino's","Golden Flower","Jeffrey's","Jenny's Churros","Macadamia Events & Catering","Mandalay","Mayo & Mustard","Missing Link","Nob Hill Pizza","Old World Food Truck","Opa","Patxi's Campbell","Patxi's Irving","Phat Thai","Purple Plant","Queen's","Santino's","Senor Sisig","Soup Freaks","Source","Spiedo","Tian Sing","Tomkat","Village Cheese House","We Sushi"]
-	ny_call_vendors = ["!Savory", "Anthi's", "Atlas Cafe", "Bagel and Bean", "Bagelworks", "Bian Dang", "BiBiFresh", "Bistro Caterers", "Bleeker Street Pizza", "Bourbon Street", "Brooklyn Mac", "Brooklyn Oyster Party", "Butcher Bar", "Carl's Steaks", "Cater2.me NYC", "Cayenne Catering", "Chola", "City Sandwich", "Clamenza's", "Crisp", "Dinosaur Bar-B-Que", "Eatery", "Favela Cubana", "FOODfreaks", "Galli", "Glaze Teriyaki Grill", "Graham Avenue Deli", "Indian Creperie", "Jing", "Jing Sushi", "Junko's Kitchen", "Just Salad", "Kashkaval", "Korilla BBQ", "kosofresh", "La Bella Torte", "La Casa de Camba", "La Lucha", "Lagniappe Doughnuts", "Lamazou Cheese", "Landhaus", "Local Cafe", "Lorimer Market", "Mark", "Mayhem and Stout", "Mimi and Coco", "Miss Elisabeth's", "Moustache", "Mrs. Dorsey's Kitchen", "Nucha's", "Palenque", "Peter's Since 1969", "Pita Pan", "Ponty Bistro", "Previti", "Rafaella", "Reena's Treats", "Robicelli's", "S'more Bakery", "Sao Mai", "Shalom Bombay", "Solber Pupusas", "Sushi Shop", "Teany", "The Counter", "Tuch Shop", "Turco Mediterranean", "Tuscany Catering", "Uncle Moe's", "Valducci's Pizza", "Via Emilia", "Wafels and Dinges", "Waffle and Wolf", "WaffleWich Way", "Yushi Asian Kitchen", "Zizi Limona"]
-	
-	CALL_VENDORS = ENV['location'] == 'NY' ? ny_call_vendors : sf_call_vendors
-	
 	def get_message
 		message = []
 		if orders_confirmed_for_today.empty?
@@ -50,7 +45,7 @@ class Vendor < Sequel::Model
 	end
 
 	def notification_preference
-		if CALL_VENDORS.include?(self.name)
+		if APP_CONFIG["call_vendors"].include?(self.name)
 			"To Call"
 		else
 			"To Text"
