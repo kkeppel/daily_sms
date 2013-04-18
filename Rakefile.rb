@@ -156,7 +156,7 @@ task :sync_calendars => :environment do
 		# cal_id = "cater2.me_" + cal_db.gcal_id + "@group.calendar.google.com" # TEST
 		feed = "http://www.google.com/calendar/feeds/"+ cal_id + "/private/full"
 		calendar = GoogleCalendar::Calendar.new(@srv, feed)
-		time_min, time_max = Time.now, Time.now + (60*60*24*30)
+		content, time_min, time_max = "", Time.now, Time.now + (60*60*24*30)
 		formatted_start_min = time_min.strftime("%Y-%m-%dT%H:%M:%S")
   	formatted_start_max = time_max.strftime("%Y-%m-%dT%H:%M:%S")
 		events_for_next_month = events(feed, {"start-min" => formatted_start_min, "start-max" => formatted_start_max})
@@ -166,9 +166,11 @@ task :sync_calendars => :environment do
 			Event.query_events(events_for_next_month, calendar)
 		else
 			puts "CREATE ORDERS!!!"
+      content += "CREATE ORDERS!!!\n"
 			cal.company.clients.each do |client|
 			# cal_db.company.clients.each do |client| #TEST
 				puts "client = #{client.name}, #{client.id_client}"
+        content += "client = #{client.name}, #{client.id_client}"
 				orders = OrderRequest.orders_for_next_month_for_client(client.id_client, time_min, time_max)
 				orders.each do |order|			
 					Event.create_events_for_client(calendar, order)
@@ -176,6 +178,9 @@ task :sync_calendars => :environment do
 			end
 		end
 	end # COMMENT OUT TO TEST
+  subject = "Calendar Status for #{Date.today}"
+  content = ["Succeeded:",succeded.join("\r\n"),"Failed:", failed.join("\r\n")].join("\n")
+  send_mail(subject, content)
 end
 
 task :destroy_calendars => :environment do
