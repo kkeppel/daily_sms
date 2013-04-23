@@ -132,8 +132,7 @@ task :message_one_vendor, [:number, :vendor] => :environment do |t, args|
   puts "status = #{status.code.to_i}"
 end
 
-# task :wipe_gcal_and_recreate_calendars => :environment do
-task :wipe_gcal_and_recreate_calendars do
+task :wipe_gcal_and_recreate_calendars => :environment do
   @srv = GoogleCalendar::Service.new(APP_CONFIG["calendar"]["login"], APP_CONFIG["calendar"]["password"])
   content, time_min, time_max = "", Time.now, Time.now + (60*60*24*30)
   formatted_start_min = time_min.strftime("%Y-%m-%dT%H:%M:%S")
