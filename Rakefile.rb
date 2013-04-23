@@ -87,7 +87,7 @@ task :message_vendors => :create_spreadsheet do
   # get array of all numbers and vendor names
   for row in 2..worksheet.num_rows
     if worksheet[row,1].downcase.match(/text/) #TODO: Change to text
-      row_data << [worksheet[row, 2] != "" ? Vendor.clean_numbers(worksheet[row, 2]) : Vendor.clean_numbers(worksheet[row, 6]), worksheet[row, 3]]
+      row_data << [worksheet[row, 2] != "" ? Vendor.clean_number(worksheet[row, 2]) : Vendor.clean_number(worksheet[row, 6]), worksheet[row, 3]]
     end
   end
 
@@ -106,7 +106,7 @@ task :message_vendors => :create_spreadsheet do
       failed << "#{number} : #{message}"
     end
     for row in 2..worksheet.num_rows
-      worksheet[row, 1] = "Awaiting Response" if Vendor.clean_numbers(worksheet[row, 2]) == number or Vendor.clean_numbers(worksheet[row, 6]) == number
+      worksheet[row, 1] = "Awaiting Response" if Vendor.clean_number(worksheet[row, 2]) == number or Vendor.clean_number(worksheet[row, 6]) == number
       worksheet.save()
     end
   end
@@ -116,26 +116,44 @@ task :message_vendors => :create_spreadsheet do
   send_mail(subject, content)
 end
 
+task :message_one_vendor, [:number, :vendor] => :environment do |t, args|
+  worksheet = @google_drive.spreadsheet_by_title(@worksheet_title).worksheets[0]
+  row_data, succeded, failed = [], [], []
+  vendor_name = args[:vendor]
+  number = Vendor.clean_number(args[:number])
+  puts "vendor = #{vendor_name}, number = #{number}"
+  message = Vendor.where(name: vendor_name).first.get_message
+  #use google voice to send sms
+  status = @google_voice.sms(number, message)
+  for row in 2..worksheet.num_rows
+    worksheet[row, 1] = "Awaiting Response" if Vendor.clean_number(worksheet[row, 2]) == number or Vendor.clean_number(worksheet[row, 6]) == number
+    worksheet.save()
+  end
+  puts "status = #{status.code.to_i}"
+end
+
 task :wipe_gcal_and_recreate_calendars => :environment do
   @srv = GoogleCalendar::Service.new(APP_CONFIG["calendar"]["login"], APP_CONFIG["calendar"]["password"])
   content, time_min, time_max = "", Time.now, Time.now + (60*60*24*30)
   formatted_start_min = time_min.strftime("%Y-%m-%dT%H:%M:%S")
   formatted_start_max = time_max.strftime("%Y-%m-%dT%H:%M:%S")
-  Calendar.all.each do |cal|
+  cal_db = Calendar.all
+  # cal_db = Calendar.exclude(company_id: [1, 182, 279, 11, 21, 219, 184]).all # 
+  cal_db.each do |cal|
     cal_id = "cater2.me_" + cal.gcal_id + "@group.calendar.google.com"
     feed = "http://www.google.com/calendar/feeds/"+ cal_id + "/private/full"
     calendar = GoogleCalendar::Calendar.new(@srv, feed)
     events_for_next_month = events(feed, {"start-min" => formatted_start_min, "start-max" => formatted_start_max})
     events_for_next_month.each do |e|
       e.destroy!
-      puts "destroyed calendar for company: #{cal.company.name if cal.company.name}, #{cal.company_id}"
-      content += "destroyed calendar for company: #{cal.company.name if cal.company.name}, #{cal.company_id}\n"
+      puts "destroyed event for company: #{cal.company.name if cal.company.name}, #{cal.company_id}"
+      content += "destroyed event for company: #{cal.company.name if cal.company.name}, #{cal.company_id}\n"
     end
     puts "CREATE ORDERS!!!"
     content += "CREATE ORDERS!!!\n"
     cal.company.clients.each do |client|
-      puts "#{client.name}, #{client.company_id}, client_id: #{client.id_client}"
-      content += "#{client.name}, #{client.company_id}, client_id: #{client.id_client}\n"
+      puts "#{client.name} #{client.company_id}, client_id: #{client.id_client}"
+      content += "#{client.name} #{client.company_id}, client_id: #{client.id_client}\n"
       orders = OrderRequest.orders_for_next_month_for_client(client.id_client, time_min, time_max)
       orders.each do |order|      
         Event.create_events_for_client(calendar, order)
