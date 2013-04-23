@@ -132,7 +132,8 @@ task :message_one_vendor, [:number, :vendor] => :environment do |t, args|
   puts "status = #{status.code.to_i}"
 end
 
-task :wipe_gcal_and_recreate_calendars => :environment do
+# task :wipe_gcal_and_recreate_calendars => :environment do
+task :wipe_gcal_and_recreate_calendars do
   @srv = GoogleCalendar::Service.new(APP_CONFIG["calendar"]["login"], APP_CONFIG["calendar"]["password"])
   content, time_min, time_max = "", Time.now, Time.now + (60*60*24*30)
   formatted_start_min = time_min.strftime("%Y-%m-%dT%H:%M:%S")
@@ -140,80 +141,37 @@ task :wipe_gcal_and_recreate_calendars => :environment do
   cal_db = Calendar.all
   # cal_db = Calendar.exclude(company_id: [1, 182, 279, 11, 21, 219, 184]).all # 
   cal_db.each do |cal|
-    cal_id = "cater2.me_" + cal.gcal_id + "@group.calendar.google.com"
-    feed = "http://www.google.com/calendar/feeds/"+ cal_id + "/private/full"
-    calendar = GoogleCalendar::Calendar.new(@srv, feed)
-    events_for_next_month = events(feed, {"start-min" => formatted_start_min, "start-max" => formatted_start_max})
-    events_for_next_month.each do |e|
-      e.destroy!
-      puts "destroyed event for company: #{cal.company.name if cal.company.name}, #{cal.company_id}"
-      content += "destroyed event for company: #{cal.company.name if cal.company.name}, #{cal.company_id}\n"
-    end
-    puts "CREATE ORDERS!!!"
-    content += "CREATE ORDERS!!!\n"
-    cal.company.clients.each do |client|
-      puts "#{client.name} #{client.company_id}, client_id: #{client.id_client}"
-      content += "#{client.name} #{client.company_id}, client_id: #{client.id_client}\n"
-      orders = OrderRequest.orders_for_next_month_for_client(client.id_client, time_min, time_max)
-      orders.each do |order|      
-        Event.create_events_for_client(calendar, order)
+    begin
+      cal_id = "cater2.me_" + cal.gcal_id + "@group.calendar.google.com"
+      feed = "http://www.google.com/calendar/feeds/"+ cal_id + "/private/full"
+      calendar = GoogleCalendar::Calendar.new(@srv, feed)
+      events_for_next_month = events(feed, {"start-min" => formatted_start_min, "start-max" => formatted_start_max})
+      events_for_next_month.each do |event|
+        event.destroy!
+        puts "destroyed event for company: #{cal.company.name if cal.company.name}, #{cal.company_id}"
+        content += "destroyed event for company: #{cal.company.name if cal.company.name}, #{cal.company_id}\n"
       end
+      puts "CREATE ORDERS!!!"
+      content += "CREATE ORDERS!!!\n"
+      cal.company.clients.each do |client|
+        puts "#{client.name} #{client.company_id}, client_id: #{client.id_client}"
+        content += "#{client.name} #{client.company_id}, client_id: #{client.id_client}\n"
+        orders = OrderRequest.orders_for_next_month_for_client(client.id_client, time_min, time_max)
+        orders.each do |order|      
+          Event.create_events_for_client(calendar, order)
+        end
+      end
+    rescue => e
+      error_subject = "GCal Sync Error #{Date.today}"
+      error_content = "Error on Company: #{cal.company.name if cal.company.name}, id: #{cal.company_id}"
+      error_content += e.message
+      error_content += e.backtrace
+      send_mail(error_subject, error_content)    
     end
   end
   subject = "Calendar Status for #{Date.today}"
   send_mail(subject, content)
 end
-
-# task :sync_calendars => :environment do
-# 	cal_db = Calendar.all # COMMENT OUT TO TEST
-#   # cal_db = Calendar.where(company_id: 32).first
-# 	# cal_db = Calendar.exclude(company_id: [1, 182, 279, 11, 21, 219, 184, 103, 216, 209, 322]) # TEST FOR ONE COMPANY
-# 	cal_db.each do |cal| # COMMENT OUT TO TEST
-# 		@srv = GoogleCalendar::Service.new(APP_CONFIG["calendar"]["login"], APP_CONFIG["calendar"]["password"])
-# 		cal_id = "cater2.me_" + cal.gcal_id + "@group.calendar.google.com" # COMMENT OUT TO TEST
-# 		# cal_id = "cater2.me_" + cal_db.gcal_id + "@group.calendar.google.com" # TEST
-# 		feed = "http://www.google.com/calendar/feeds/"+ cal_id + "/private/full"
-# 		calendar = GoogleCalendar::Calendar.new(@srv, feed)
-# 		content, time_min, time_max = "", Time.now, Time.now + (60*60*24*30)
-# 		formatted_start_min = time_min.strftime("%Y-%m-%dT%H:%M:%S")
-#   	formatted_start_max = time_max.strftime("%Y-%m-%dT%H:%M:%S")
-# 		events_for_next_month = events(feed, {"start-min" => formatted_start_min, "start-max" => formatted_start_max})
-# 		if events_for_next_month != []
-# 			puts "company = #{cal.company_id}"
-# 			puts "QUERY ORDERS!!!!"
-# 			Event.query_events(events_for_next_month, calendar)
-# 		else
-# 			puts "CREATE ORDERS!!!"
-#       content += "CREATE ORDERS!!!\n"
-# 			cal.company.clients.each do |client|
-# 			# cal_db.company.clients.each do |client| #TEST
-# 				puts "client = #{client.name}, #{client.id_client}, company_id = #{client.company_id}"
-#         content += "client = #{client.name}, #{client.id_client}, company_id = #{client.company_id}"
-# 				orders = OrderRequest.orders_for_next_month_for_client(client.id_client, time_min, time_max)
-# 				orders.each do |order|			
-# 					Event.create_events_for_client(calendar, order)
-# 				end
-# 			end
-# 		end
-# 	end # COMMENT OUT TO TEST
-#   subject = "Calendar Status for #{Date.today}"
-#   send_mail(subject, content)
-# end
-
-# task :destroy_calendars => :environment do
-# 	@srv = GoogleCalendar::Service.new(APP_CONFIG["calendar"]["login"], APP_CONFIG["calendar"]["password"])
-# 	time_min, time_max = Time.now.strftime("%Y-%m-%dT%H:%M:%S"), (Time.now + (60*60*24*30)).strftime("%Y-%m-%dT%H:%M:%S")
-# 	Calendar.all.each do |cal|
-# 		cal_id = "cater2.me_" + cal.gcal_id + "@group.calendar.google.com"
-# 		feed = "http://www.google.com/calendar/feeds/"+ cal_id + "/private/full"
-# 		calendar = GoogleCalendar::Calendar.new(@srv, feed)
-# 		events = events(feed, {"start-min" => time_min, "start-max" => time_max})
-# 		events.each do |e|
-# 			e.destroy!
-# 			puts "destroyed calendar for company id: #{cal.company_id}"
-# 		end
-# 	end
-# end
 
 def events(feed, conditions = {})
   ret = @srv.query(feed, conditions)
