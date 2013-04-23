@@ -39,7 +39,7 @@ class Vendor < Sequel::Model
     "#{count || 0} " + ((count == 1 || count =~ /^1(\.0+)?$/) ? singular : (plural || singular.pluralize))
   end
 
-  def self.clean_numbers(number)
+  def self.clean_number(number)
 		number.gsub!(/\D/, '')
 		"+1" + number
 	end
