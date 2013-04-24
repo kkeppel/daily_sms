@@ -129,7 +129,9 @@ task :message_one_vendor, [:number, :vendor] => :environment do |t, args|
     worksheet[row, 1] = "Awaiting Response" if Vendor.clean_number(worksheet[row, 2]) == number or Vendor.clean_number(worksheet[row, 6]) == number
     worksheet.save()
   end
-  puts "status = #{status.code.to_i}"
+  subject = "Single Text Status #{status.code.to_i} for #{Date.today}"
+  content = "#{number} : #{message}"
+  send_mail(subject, content)
 end
 
 task :wipe_gcal_and_recreate_calendars => :environment do
