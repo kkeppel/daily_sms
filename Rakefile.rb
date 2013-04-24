@@ -137,39 +137,50 @@ task :wipe_gcal_and_recreate_calendars => :environment do
   content, time_min, time_max = "", Time.now, Time.now + (60*60*24*30)
   formatted_start_min = time_min.strftime("%Y-%m-%dT%H:%M:%S")
   formatted_start_max = time_max.strftime("%Y-%m-%dT%H:%M:%S")
-  cal_db = Calendar.all
-  # cal_db = Calendar.exclude(company_id: [1, 182, 279, 11, 21, 219, 184]).all # 
-  cal_db.each do |cal|
-    begin
-      cal_id = "cater2.me_" + cal.gcal_id + "@group.calendar.google.com"
-      feed = "http://www.google.com/calendar/feeds/"+ cal_id + "/private/full"
-      calendar = GoogleCalendar::Calendar.new(@srv, feed)
-      events_for_next_month = events(feed, {"start-min" => formatted_start_min, "start-max" => formatted_start_max})
-      events_for_next_month.each do |event|
-        event.destroy!
-        puts "destroyed event for company: #{cal.company.name if cal.company.name}, #{cal.company_id}"
-        content += "destroyed event for company: #{cal.company.name if cal.company.name}, #{cal.company_id}\n"
-      end
-      puts "CREATE ORDERS!!!"
-      content += "CREATE ORDERS!!!\n"
-      cal.company.clients.each do |client|
-        puts "#{client.name} #{client.company_id}, client_id: #{client.id_client}"
-        content += "#{client.name} #{client.company_id}, client_id: #{client.id_client}\n"
-        orders = OrderRequest.orders_for_next_month_for_client(client.id_client, time_min, time_max)
-        orders.each do |order|      
-          Event.create_events_for_client(calendar, order)
+  last_week = Time.now - (60*60*24*7)
+  orders_for_last_week = OrderRequest.orders_for_last_week(last_week, Time.now).all
+  puts "#{orders_for_last_week}"
+  fail
+  if orders_for_last_week == []
+    subject = "Database upload failed on #{Date.today}"
+    content = "You're going to have to do the calendars at some other point today. Womp."
+    send_mail(subject, content)
+    puts "DB didn't upload. Rake fails."
+  else
+    cal_db = Calendar.all
+    # cal_db = Calendar.exclude(company_id: [1, 182, 279, 11, 21, 219, 184]).all # 
+    cal_db.each do |cal|
+      begin
+        cal_id = "cater2.me_" + cal.gcal_id + "@group.calendar.google.com"
+        feed = "http://www.google.com/calendar/feeds/"+ cal_id + "/private/full"
+        calendar = GoogleCalendar::Calendar.new(@srv, feed)
+        events_for_next_month = events(feed, {"start-min" => formatted_start_min, "start-max" => formatted_start_max})
+        events_for_next_month.each do |event|
+          event.destroy!
+          puts "destroyed event for company: #{cal.company.name if cal.company.name}, #{cal.company_id}"
+          content += "destroyed event for company: #{cal.company.name if cal.company.name}, #{cal.company_id}\n"
         end
+        puts "CREATE ORDERS!!!"
+        content += "CREATE ORDERS!!!\n"
+        cal.company.clients.each do |client|
+          puts "#{client.name} #{client.company_id}, client_id: #{client.id_client}"
+          content += "#{client.name} #{client.company_id}, client_id: #{client.id_client}\n"
+          orders = OrderRequest.orders_for_next_month_for_client(client.id_client, time_min, time_max)
+          orders.each do |order|      
+            Event.create_events_for_client(calendar, order)
+          end
+        end
+      rescue => e
+        error_subject = "GCal Sync Error #{Date.today}"
+        error_content = "Error on Company: #{cal.company.name if cal.company.name}, id: #{cal.company_id}"
+        error_content += e.message
+        error_content += e.backtrace
+        send_mail(error_subject, error_content)    
       end
-    rescue => e
-      error_subject = "GCal Sync Error #{Date.today}"
-      error_content = "Error on Company: #{cal.company.name if cal.company.name}, id: #{cal.company_id}"
-      error_content += e.message
-      error_content += e.backtrace
-      send_mail(error_subject, error_content)    
     end
+    subject = "Calendar Status for #{Date.today}"
+    send_mail(subject, content)
   end
-  subject = "Calendar Status for #{Date.today}"
-  send_mail(subject, content)
 end
 
 def events(feed, conditions = {})
