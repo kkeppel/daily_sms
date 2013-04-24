@@ -139,13 +139,12 @@ task :wipe_gcal_and_recreate_calendars => :environment do
   formatted_start_max = time_max.strftime("%Y-%m-%dT%H:%M:%S")
   last_week = Time.now - (60*60*24*7)
   orders_for_last_week = OrderRequest.orders_for_last_week(last_week, Time.now).all
-  puts "#{orders_for_last_week}"
-  fail
   if orders_for_last_week == []
     subject = "Database upload failed on #{Date.today}"
     content = "You're going to have to do the calendars at some other point today. Womp."
     send_mail(subject, content)
     puts "DB didn't upload. Rake fails."
+    fail
   else
     cal_db = Calendar.all
     # cal_db = Calendar.exclude(company_id: [1, 182, 279, 11, 21, 219, 184]).all # 

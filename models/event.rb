@@ -36,11 +36,17 @@ class Event
 	end
 
 	def self.create_events_for_client(calendar, order)
+		sf_order_for = order.order_for.to_time + (60*60*3)
 		get_event_description(order)
-		one_hour = order.order_for.to_time + (60*60)
 		event = calendar.create_event
 		event.title =  order.order_proposal.vendor.public_name
-		event.st = order.order_for
+		if ENV['location'] == "SF"
+			one_hour = sf_order_for + (60*60)
+			event.st = order.order_for.to_time + (60*60*3)	
+		else
+			one_hour = order.order_for.to_time + (60*60)
+			event.st = order.order_for.to_time
+		end
 		event.en = one_hour
 		event.desc = @description
 		event.save!
