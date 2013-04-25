@@ -118,10 +118,8 @@ end
 
 task :message_one_vendor, [:number, :vendor] => :environment do |t, args|
   worksheet = @google_drive.spreadsheet_by_title(@worksheet_title).worksheets[0]
-  row_data, succeded, failed = [], [], []
   vendor_name = args[:vendor]
   number = Vendor.clean_number(args[:number])
-  puts "vendor = #{vendor_name}, number = #{number}"
   message = Vendor.where(name: vendor_name).first.get_message
   #use google voice to send sms
   status = @google_voice.sms(number, message)
@@ -145,7 +143,6 @@ task :wipe_gcal_and_recreate_calendars => :environment do
     subject = "Database upload failed on #{Date.today}"
     content = "You're going to have to do the calendars at some other point today. Womp."
     send_mail(subject, content)
-    puts "DB didn't upload. Rake fails."
     fail
   else
     cal_db = Calendar.all
@@ -158,13 +155,10 @@ task :wipe_gcal_and_recreate_calendars => :environment do
         events_for_next_month = events(feed, {"start-min" => formatted_start_min, "start-max" => formatted_start_max})
         events_for_next_month.each do |event|
           event.destroy!
-          puts "destroyed event for company: #{cal.company.name if cal.company.name}, #{cal.company_id}"
           content += "destroyed event for company: #{cal.company.name if cal.company.name}, #{cal.company_id}\n"
         end
-        puts "CREATE ORDERS!!!"
         content += "CREATE ORDERS!!!\n"
         cal.company.clients.each do |client|
-          puts "#{client.name} #{client.company_id}, client_id: #{client.id_client}"
           content += "#{client.name} #{client.company_id}, client_id: #{client.id_client}\n"
           orders = OrderRequest.orders_for_next_month_for_client(client.id_client, time_min, time_max)
           orders.each do |order|      
