@@ -6,7 +6,7 @@ class Vendor < Sequel::Model
 	many_to_many :orders_canceled_for_today, :clone=>:order_requests, :conditions=>{Sequel.function(:DATE,:order_for)=>Date.today, :order_status_id=>2, 
 		:order_proposals__selected => true}
 	
-	CALL_VENDORS = ["AK Subs","Anatolian Kitchen","Arabian Bites","Arki","Bamboo Asia","Beautifull","Bistro Mozart","Breaking Bread","Bun Mee","Cater2U","CreoLa Bistro","Crystal Springs Catering","DeLessio","Dino's","Golden Flower","Jeffrey's","Jenny's Churros","Macadamia Events & Catering","Mandalay","Mayo & Mustard","Missing Link","Nob Hill Pizza","Old World Food Truck","Opa","Patxi's Campbell","Patxi's Irving","Phat Thai","Purple Plant","Queen's","Santino's","Senor Sisig","Soup Freaks","Source","Spiedo","Tian Sing","Tomkat","Village Cheese House","We Sushi"]
+	CALL_VENDORS = ["AK Subs","Anatolian Kitchen","Arabian Bites","Arki","Bamboo Asia","Beautifull","Bistro Mozart","Breaking Bread","Bun Mee","Cater2U","CreoLa Bistro","Crystal Springs Catering","Crouching Tiger Restaurant","DeLessio","Dino's","Golden Flower","Jeffrey's","Jenny's Churros","Macadamia Events & Catering","Mandalay","Mayo & Mustard","Missing Link","Nob Hill Pizza","Old World Food Truck","Opa","Patxi's Campbell","Patxi's Irving","Phat Thai","Purple Plant","Queen's","Santino's","Senor Sisig","Soup Freaks","Source","Spiedo","Tian Sing","Tomkat","Village Cheese House","We Sushi"]
 	
 	def get_message
 		message = []
