@@ -15,6 +15,9 @@ class OrderRequest < Sequel::Model
     def orders_for_next_month_for_client(client, time_min, time_max)
       where("order_for BETWEEN ? and ?", time_min, time_max).where(client_id: client)
     end
+    def orders_for_last_week(time_min, time_max)
+      where("order_for BETWEEN ? and ?", time_min, time_max)
+    end
   end
 
   set_dataset(self.active)

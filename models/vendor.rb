@@ -6,8 +6,6 @@ class Vendor < Sequel::Model
 	many_to_many :orders_canceled_for_today, :clone=>:order_requests, :conditions=>{Sequel.function(:DATE,:order_for)=>Date.today, :order_status_id=>2, 
 		:order_proposals__selected => true}
 	
-	CALL_VENDORS = ["AK Subs","Anatolian Kitchen","Arabian Bites","Arki","Bamboo Asia","Beautifull","Bistro Mozart","Breaking Bread","Bun Mee","Cater2U","CreoLa Bistro","Crystal Springs Catering","Crouching Tiger Restaurant","DeLessio","Dino's","Golden Flower","Jeffrey's","Jenny's Churros","Macadamia Events & Catering","Mandalay","Mayo & Mustard","Missing Link","Nob Hill Pizza","Old World Food Truck","Opa","Patxi's Campbell","Patxi's Irving","Phat Thai","Purple Plant","Queen's","Santino's","Senor Sisig","Soup Freaks","Source","Spiedo","Tian Sing","Tomkat","Village Cheese House","We Sushi"]
-	
 	def get_message
 		message = []
 		if orders_confirmed_for_today.empty?
@@ -30,8 +28,8 @@ class Vendor < Sequel::Model
 		end
 		case orders_confirmed_for_today.count
 			when 0 then message.push ". Please text back to confirm. Thanks!"
-			when 1 then message.push ". Please confirm. If not you, text back with the number of the driver to confirm. Thanks!"
-			else message.push ". Please confirm. If not you, text back with the number of the driver(s) to confirm. Thanks!"
+			when 1 then message.push ". Please text back with the driver's number to confirm. Thanks!"
+			else message.push ". Please text back with the number of the driver(s) to confirm. Thanks!"
 		end
 		message.join("")
 	end
@@ -41,13 +39,13 @@ class Vendor < Sequel::Model
     "#{count || 0} " + ((count == 1 || count =~ /^1(\.0+)?$/) ? singular : (plural || singular.pluralize))
   end
 
-  def self.clean_numbers(number)
+  def self.clean_number(number)
 		number.gsub!(/\D/, '')
 		"+1" + number
 	end
 
 	def notification_preference
-		if CALL_VENDORS.include?(self.name)
+		if APP_CONFIG["call_vendors"].include?(self.name)
 			"To Call"
 		else
 			"To Text"
