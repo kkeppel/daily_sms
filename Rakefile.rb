@@ -133,10 +133,6 @@ task :message_one_vendor, [:number, :vendor] => :environment do |t, args|
 end
 
 task :wipe_gcal_and_recreate_calendars => :environment do
-  @srv = GoogleCalendar::Service.new(APP_CONFIG["calendar"]["login"], APP_CONFIG["calendar"]["password"])
-  content, time_min, time_max = "", Time.now, Time.now + (60*60*24*30)
-  formatted_start_min = time_min.strftime("%Y-%m-%dT%H:%M:%S")
-  formatted_start_max = time_max.strftime("%Y-%m-%dT%H:%M:%S")
   last_week = Time.now - (60*60*24*7)
   orders_for_last_week = OrderRequest.orders_for_last_week(last_week, Time.now).all
   if orders_for_last_week == []
@@ -146,35 +142,45 @@ task :wipe_gcal_and_recreate_calendars => :environment do
     fail
   else
     cal_db = Calendar.all
-    # cal_db = Calendar.exclude(company_id: [1, 182, 279, 11, 21, 219, 184]).all # 
     cal_db.each do |cal|
-      begin
-        cal_id = "cater2.me_" + cal.gcal_id + "@group.calendar.google.com"
-        feed = "http://www.google.com/calendar/feeds/"+ cal_id + "/private/full"
-        calendar = GoogleCalendar::Calendar.new(@srv, feed)
-        events_for_next_month = events(feed, {"start-min" => formatted_start_min, "start-max" => formatted_start_max})
-        events_for_next_month.each do |event|
-          event.destroy!
-          content += "destroyed event for company: #{cal.company.name if cal.company.name}, #{cal.company_id}\n"
-        end
-        content += "CREATE ORDERS!!!\n"
-        cal.company.clients.each do |client|
-          content += "#{client.name} #{client.company_id}, client_id: #{client.id_client}\n"
-          orders = OrderRequest.orders_for_next_month_for_client(client.id_client, time_min, time_max)
-          orders.each do |order|      
-            Event.create_events_for_client(calendar, order)
-          end
-        end
-      rescue => e
-        error_subject = "GCal Sync Error #{Date.today}"
-        error_content = "Error on Company: #{cal.company.name if cal.company.name}, id: #{cal.company_id}"
-        error_content += e.message
-        error_content += e.backtrace
-        send_mail(error_subject, error_content)    
-      end
+      sync_calendar(cal)
     end
     subject = "Calendar Status for #{Date.today}"
-    send_mail(subject, content)
+    send_mail(subject, @cal_content)
+  end
+end
+
+def sync_calendar(cal)
+  @srv = GoogleCalendar::Service.new(APP_CONFIG["calendar"]["login"], APP_CONFIG["calendar"]["password"])
+  @cal_content, time_min, time_max = "", Time.now, Time.now + (60*60*24*30)
+  formatted_start_min = time_min.strftime("%Y-%m-%dT%H:%M:%S")
+  formatted_start_max = time_max.strftime("%Y-%m-%dT%H:%M:%S")
+  begin
+    cal_id = "cater2.me_" + cal.gcal_id + "@group.calendar.google.com"
+    feed = "http://www.google.com/calendar/feeds/"+ cal_id + "/private/full"
+    calendar = GoogleCalendar::Calendar.new(@srv, feed)
+    events_for_next_month = events(feed, {"start-min" => formatted_start_min, "start-max" => formatted_start_max})
+    events_for_next_month.each do |event|
+      event.destroy!
+      @cal_content += "destroyed event for company: #{cal.company.name if cal.company.name}, #{cal.company_id}\n"
+      puts "destroyed event for company: #{cal.company.name if cal.company.name}, #{cal.company_id}\n"
+    end
+    @cal_content += "CREATE ORDERS!!!\n"
+    cal.company.clients.each do |client|
+      @cal_content += "#{client.name} #{client.company_id}, client_id: #{client.id_client}\n"
+      puts "#{client.name} #{client.company_id}, client_id: #{client.id_client}\n"
+      orders = OrderRequest.orders_for_next_month_for_client(client.id_client, time_min, time_max)
+      orders.each do |order|      
+        Event.create_events_for_client(calendar, order)
+      end
+    end
+  rescue => e
+    error_subject = "GCal Sync Error #{Date.today}"
+    error_content = "Error on Company: #{cal.company.name if cal.company.name}, id: #{cal.company_id}"
+    error_content += e.message
+    send_mail(error_subject, error_content)
+    puts "retrying for #{cal.company.name if cal.company.name}, id: #{cal.company_id}"
+    sync_calendar(cal)
   end
 end
 
