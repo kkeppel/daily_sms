@@ -145,14 +145,12 @@ task :wipe_gcal_and_recreate_calendars => :environment do
     cal_db.each do |cal|
       sync_calendar(cal)
     end
-    subject = "Calendar Status for #{Date.today}"
-    send_mail(subject, @cal_content)
   end
 end
 
 def sync_calendar(cal)
   @srv = GoogleCalendar::Service.new(APP_CONFIG["calendar"]["login"], APP_CONFIG["calendar"]["password"])
-  @cal_content, time_min, time_max = "", Time.now, Time.now + (60*60*24*30)
+  time_min, time_max = Time.now, Time.now + (60*60*24*30)
   formatted_start_min = time_min.strftime("%Y-%m-%dT%H:%M:%S")
   formatted_start_max = time_max.strftime("%Y-%m-%dT%H:%M:%S")
   begin
@@ -162,12 +160,9 @@ def sync_calendar(cal)
     events_for_next_month = events(feed, {"start-min" => formatted_start_min, "start-max" => formatted_start_max})
     events_for_next_month.each do |event|
       event.destroy!
-      @cal_content += "destroyed event for company: #{cal.company.name if cal.company.name}, #{cal.company_id}\n"
       puts "destroyed event for company: #{cal.company.name if cal.company.name}, #{cal.company_id}\n"
     end
-    @cal_content += "CREATE ORDERS!!!\n"
     cal.company.clients.each do |client|
-      @cal_content += "#{client.name} #{client.company_id}, client_id: #{client.id_client}\n"
       puts "#{client.name} #{client.company_id}, client_id: #{client.id_client}\n"
       orders = OrderRequest.orders_for_next_month_for_client(client.id_client, time_min, time_max)
       orders.each do |order|      
@@ -178,6 +173,7 @@ def sync_calendar(cal)
     error_subject = "GCal Sync Error #{Date.today}"
     error_content = "Error on Company: #{cal.company.name if cal.company.name}, id: #{cal.company_id}"
     error_content += e.message
+    error_content += "retrying for #{cal.company.name if cal.company.name}, id: #{cal.company_id}"
     send_mail(error_subject, error_content)
     puts "retrying for #{cal.company.name if cal.company.name}, id: #{cal.company_id}"
     sync_calendar(cal)
