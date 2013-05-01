@@ -90,10 +90,8 @@ task :message_vendors => :create_spreadsheet do
       row_data << [worksheet[row, 2] != "" ? Vendor.clean_number(worksheet[row, 2]) : Vendor.clean_number(worksheet[row, 6]), worksheet[row, 3]]
     end
   end
-
   # make array unique by number
   row_data = row_data.uniq{ |r| r[0] }
-
   row_data.each do |r|
     number = r[0]
     vendor_name = r[1]
@@ -110,7 +108,6 @@ task :message_vendors => :create_spreadsheet do
       worksheet.save()
     end
   end
-
   subject = "Text Confirmations Status for #{Date.today} Send #{succeded.count}; Failed: #{failed.count}"
   content = ["Succeeded:",succeded.join("\r\n"),"Failed:", failed.join("\r\n")].join("\n")
   send_mail(subject, content)
@@ -141,8 +138,8 @@ task :wipe_gcal_and_recreate_calendars => :environment do
     send_mail(subject, content)
     fail
   else
-    cal_db = Calendar.where(company_id: 32).all
-    # cal_db = Calendar.all
+    # cal_db = Calendar.where(company_id: 32).all
+    cal_db = Calendar.all
     cal_db.each do |cal|
       sync_calendar(cal)
     end
@@ -155,7 +152,7 @@ def sync_calendar(cal)
   time_min, time_max = Time.now, Time.now + (60*60*24*30)
   formatted_start_min = time_min.strftime("%Y-%m-%dT%H:%M:%S")
   formatted_start_max = time_max.strftime("%Y-%m-%dT%H:%M:%S")
-  # begin
+  begin
     cal_id = "cater2.me_" + cal.gcal_id + "@group.calendar.google.com"
     feed = "http://www.google.com/calendar/feeds/"+ cal_id + "/private/full"
     calendar = GoogleCalendar::Calendar.new(@srv, feed)
@@ -172,15 +169,15 @@ def sync_calendar(cal)
         Event.create_events_for_client(calendar, order)
       end
     end
-  # rescue => e
-  #   error_subject = "GCal Sync Error #{Date.today}"
-  #   error_content = "Error on Company: #{cal.company.name if cal.company.name}, id: #{cal.company_id}"
-  #   error_content += e.message
-  #   error_content += "retrying for #{cal.company.name if cal.company.name}, id: #{cal.company_id}"
-  #   send_mail(error_subject, error_content)
-  #   puts "retrying for #{cal.company.name if cal.company.name}, id: #{cal.company_id}"
-  #   sync_calendar(cal)
-  # end
+  rescue => e
+    error_subject = "GCal Sync Error #{Date.today}"
+    error_content = "Error on Company: #{cal.company.name if cal.company.name}, id: #{cal.company_id}"
+    error_content += e.message
+    error_content += "retrying for #{cal.company.name if cal.company.name}, id: #{cal.company_id}"
+    send_mail(error_subject, error_content)
+    puts "retrying for #{cal.company.name if cal.company.name}, id: #{cal.company_id}"
+    sync_calendar(cal)
+  end
 end
 
 def events(feed, conditions = {})

@@ -8,18 +8,18 @@ class Event
 		sf_order_for = order.order_for.to_time + (60*60*3)
 		order = OrderRequest.where(id_order: 35381).first
 		get_event_description(order)
-		# event = calendar.create_event
-		# event.title =  order.order_proposal.vendor.public_name
-		# if ENV['location'] == "SF"
-		# 	one_hour = sf_order_for + (60*60)
-		# 	event.st = order.order_for.to_time + (60*60*3)	
-		# else
-		# 	one_hour = order.order_for.to_time + (60*60)
-		# 	event.st = order.order_for.to_time
-		# end
+		event = calendar.create_event
+		event.title =  order.order_proposal.vendor.public_name
+		if ENV['location'] == "SF"
+			one_hour = sf_order_for + (60*60)
+			event.st = order.order_for.to_time + (60*60*3)	
+		else
+			one_hour = order.order_for.to_time + (60*60)
+			event.st = order.order_for.to_time
+		end
 		# event.en = one_hour
-		# event.desc = @description
-		# event.save!
+		event.desc = @description
+		event.save!
 	end
 
 	def self.get_event_description(order)
@@ -71,6 +71,5 @@ class Event
 		end
 		legend = "\n"+'<b>Allergen Key:</b> *Vegetarian, **Vegan, (G) Gluten Safe, (D) Dairy Safe, (N) Nut Safe, (E) Egg Safe, (S) Soy Safe.' + "\n" +'Items have been prepared in facilities that may contain trace amounts of common allergens. See below for full disclaimer.'
 		@description += legend
-		puts "description = #{@description}"
 	end
 end
