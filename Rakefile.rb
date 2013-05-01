@@ -141,10 +141,13 @@ task :wipe_gcal_and_recreate_calendars => :environment do
     send_mail(subject, content)
     fail
   else
+    # cal_db = Calendar.where(company_id: 32).all
+    # cal_db = Calendar.exclude(company_id: [175, 167, 252, 361, 283, 480, 493, 392, 197, 613, 476, 302, 413, 513, 540, 25, 551, 486, 556, 6, 4, 126, 78, 400, 319, 91, 246, 274, 32, 256, 183, 243, 477, 354, 349, 696, 177, 82, 497, 235, 367, 324, 403, 163, 174, 419, 105, 388, 288, 298, 569, 369, 322, 530, 512, 238, 97, 608, 395, 330, 94, 100, 491, 455, 273, 68]).all
     cal_db = Calendar.all
     cal_db.each do |cal|
       sync_calendar(cal)
     end
+
   end
 end
 
@@ -163,6 +166,7 @@ def sync_calendar(cal)
       puts "destroyed event for company: #{cal.company.name if cal.company.name}, #{cal.company_id}\n"
     end
     cal.company.clients.each do |client|
+      puts "CREATE ORDERS!!"
       puts "#{client.name} #{client.company_id}, client_id: #{client.id_client}\n"
       orders = OrderRequest.orders_for_next_month_for_client(client.id_client, time_min, time_max)
       orders.each do |order|      
