@@ -50,8 +50,14 @@ task :create_spreadsheet => :environment do
     worksheet.save
     OrderRequest.for_today.eager_graph([{:order_proposal=>:vendor},{:client=>:company},:client_profile,:catering_extra_labels]).
     order(Sequel.qualify(:vendor,:name), :order_status_id, :order_for,Sequel.qualify(:order_proposal,:id_order_proposal)).all.each do |order|
+      if ENV['location'] == 'SF'
+        notification = order.order_proposal.vendor.notification_preference
+      else
+        notification = order.order_proposal.vendor.MorningText ? "To Text" : "To Call"
+      end
       worksheet.list.push({
-        "Text/Call?" => order.order_proposal.vendor.notification_preference,
+        # "Text/Call?" => ENV['location'] == 'SF' ? order.order_proposal.vendor.notification_preference : (order.order_proposal.vendor.MorningText ? "To Text" : "To Call"),
+        "Text/Call?" => notification,
         "Primary Number" => order.order_proposal.vendor.MorningText,
         "VendorName" => order.order_proposal.vendor.name,
         "OrderStatus" => order.order_status_id == 2 ? "Canceled" : "Confirmed",
@@ -83,11 +89,12 @@ end
 
 task :message_vendors => :create_spreadsheet do
   worksheet = @google_drive.spreadsheet_by_title(@worksheet_title).worksheets[0]
-  row_data, succeded, failed = [], [], []
+  row_data, succeeded, failed = [], [], []
   # get array of all numbers and vendor names
   for row in 2..worksheet.num_rows
     if worksheet[row,1].downcase.match(/text/) #TODO: Change to text
-      row_data << [worksheet[row, 2] != "" ? Vendor.clean_number(worksheet[row, 2]) : Vendor.clean_number(worksheet[row, 6]), worksheet[row, 3]]
+      # row_data << [worksheet[row, 2] != "" ? Vendor.clean_number(worksheet[row, 2]) : Vendor.clean_number(worksheet[row, 6]), worksheet[row, 3]]
+      row_data << [Vendor.clean_number(worksheet[row, 2]), worksheet[row, 3]] if worksheet[row, 2] != ""
     end
   end
   # make array unique by number
@@ -99,17 +106,17 @@ task :message_vendors => :create_spreadsheet do
     #use google voice to send sms
     status = @google_voice.sms(number, message)
     if status.code.to_i == 200
-      succeded << "#{number} : #{message}"
+      succeeded << "#{number} : #{message}"
     else
       failed << "#{number} : #{message}"
     end
     for row in 2..worksheet.num_rows
-      worksheet[row, 1] = "Awaiting Response" if Vendor.clean_number(worksheet[row, 2]) == number or Vendor.clean_number(worksheet[row, 6]) == number
+      worksheet[row, 1] = "Awaiting Response" if Vendor.clean_number(worksheet[row, 2]) == number
       worksheet.save()
     end
   end
-  subject = "Text Confirmations Status for #{Date.today} Send #{succeded.count}; Failed: #{failed.count}"
-  content = ["Succeeded:",succeded.join("\r\n"),"Failed:", failed.join("\r\n")].join("\n")
+  subject = "Text Confirmations Status for #{Date.today} Send #{succeeded.count}; Failed: #{failed.count}"
+  content = ["Succeeded:",succeeded.join("\r\n"),"Failed:", failed.join("\r\n")].join("\n")
   send_mail(subject, content)
 end
 
