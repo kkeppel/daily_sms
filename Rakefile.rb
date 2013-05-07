@@ -53,10 +53,9 @@ task :create_spreadsheet => :environment do
       if ENV['location'] == 'SF'
         notification = order.order_proposal.vendor.notification_preference
       else
-        notification = order.order_proposal.vendor.MorningText ? "To Text" : "To Call"
+        notification = order.order_proposal.vendor.MorningText != '' ? "To Text" : "To Call"
       end
       worksheet.list.push({
-        # "Text/Call?" => ENV['location'] == 'SF' ? order.order_proposal.vendor.notification_preference : (order.order_proposal.vendor.MorningText ? "To Text" : "To Call"),
         "Text/Call?" => notification,
         "Primary Number" => order.order_proposal.vendor.MorningText,
         "VendorName" => order.order_proposal.vendor.name,
@@ -90,20 +89,16 @@ end
 task :message_vendors => :create_spreadsheet do
   worksheet = @google_drive.spreadsheet_by_title(@worksheet_title).worksheets[0]
   row_data, succeeded, failed = [], [], []
-  # get array of all numbers and vendor names
   for row in 2..worksheet.num_rows
     if worksheet[row,1].downcase.match(/text/) #TODO: Change to text
-      # row_data << [worksheet[row, 2] != "" ? Vendor.clean_number(worksheet[row, 2]) : Vendor.clean_number(worksheet[row, 6]), worksheet[row, 3]]
       row_data << [Vendor.clean_number(worksheet[row, 2]), worksheet[row, 3]] if worksheet[row, 2] != ""
     end
   end
-  # make array unique by number
   row_data = row_data.uniq{ |r| r[0] }
   row_data.each do |r|
     number = r[0]
     vendor_name = r[1]
     message = Vendor.where(name: vendor_name).first.get_message
-    #use google voice to send sms
     status = @google_voice.sms(number, message)
     if status.code.to_i == 200
       succeeded << "#{number} : #{message}"
@@ -125,10 +120,9 @@ task :message_one_vendor, [:number, :vendor] => :environment do |t, args|
   vendor_name = args[:vendor]
   number = Vendor.clean_number(args[:number])
   message = Vendor.where(name: vendor_name).first.get_message
-  #use google voice to send sms
   status = @google_voice.sms(number, message)
   for row in 2..worksheet.num_rows
-    worksheet[row, 1] = "Awaiting Response" if Vendor.clean_number(worksheet[row, 2]) == number or Vendor.clean_number(worksheet[row, 6]) == number
+    worksheet[row, 1] = "Awaiting Response" if Vendor.clean_number(worksheet[row, 2]) == number
     worksheet.save()
   end
   subject = "Single Text Status #{status.code.to_i} for #{Date.today}"
@@ -141,16 +135,13 @@ task :wipe_gcal_and_recreate_calendars => :environment do
   orders_for_last_week = OrderRequest.orders_for_last_week(last_week, Time.now).all
   if orders_for_last_week == []
     subject = "Database upload failed on #{Date.today}"
-    content = "You're going to have to do the calendars at some other point today. Womp."
+    content = "You're going to have to do the calendars at some other point today."
     send_mail(subject, content)
     fail
   else
-    # cal_db = Calendar.where(company_id: 32).all
-    cal_db = Calendar.all
-    cal_db.each do |cal|
+    Calendar.all.each do |cal|
       sync_calendar(cal)
     end
-
   end
 end
 
@@ -178,9 +169,9 @@ def sync_calendar(cal)
     end
   rescue => e
     error_subject = "GCal Sync Error #{Date.today}"
-    error_content = "Error on Company: #{cal.company.name if cal.company.name}, id: #{cal.company_id}"
+    error_content = "Error on Company: #{cal.company.name if cal.company.name}, id: #{cal.company_id}\n"
     error_content += e.message
-    error_content += "retrying for #{cal.company.name if cal.company.name}, id: #{cal.company_id}"
+    error_content += "\nretrying for #{cal.company.name if cal.company.name}, id: #{cal.company_id}"
     send_mail(error_subject, error_content)
     puts "retrying for #{cal.company.name if cal.company.name}, id: #{cal.company_id}"
     sync_calendar(cal)
