@@ -130,6 +130,10 @@ task :message_one_vendor, [:number, :vendor] => :environment do |t, args|
   send_mail(subject, content)
 end
 
+task :test_cron => :environment do 
+  File.open('test_file.txt', 'w') { |file| file.write("#{ENV['location']}") }
+end
+
 task :wipe_gcal_and_recreate_calendars => :environment do
   last_week = Time.now - (60*60*24*7)
   orders_for_last_week = OrderRequest.orders_for_last_week(last_week, Time.now).all
